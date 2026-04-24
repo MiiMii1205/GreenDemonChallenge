@@ -32,6 +32,33 @@ public static class GreenDemonPatcher
             GreenDemonChallenge.Log.LogError($"{nameof(GreenDemonGUIManager)} was not found on {__instance.gameObject}");
         }
     }
+    
+    [HarmonyPatch(typeof(MapHandler), nameof(MapHandler.JumpToSegment))]
+    [HarmonyPostfix]
+    public static void JumpToPostfix(MapHandler __instance, Segment segment)
+    {
+        switch (GreenDemonChallenge.RoomGreenDemonMode)
+        {
+            case GreenDemonModes.NORMAL:
+            {
+                GreenDemonHandler.Instance.ShrinkAllDemons();
+                break;
+            }
+            case GreenDemonModes.VERY_HARD:
+            case GreenDemonModes.HARD:
+            {
+                GreenDemonHandler.Instance.StopAllDemon((MapHandler.PreviousCampfire?.burnsFor ?? 0f) + 0.25f);
+
+
+                break;
+            }
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        // Resume the spawning after the campfire burns out.
+        GreenDemonHandler.Instance.ResumeSpawning((MapHandler.PreviousCampfire?.burnsFor ?? 0f) + 0.25f);
+    }
 
     [HarmonyPatch(typeof(TriggerEvent), nameof(TriggerEvent.OnTriggerEnter))]
     [HarmonyPrefix]

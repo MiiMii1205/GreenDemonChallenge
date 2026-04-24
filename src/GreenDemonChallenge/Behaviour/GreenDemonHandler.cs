@@ -24,6 +24,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     private Bounds m_tombBounds;
 
     private Coroutine? m_demonSpawnCoroutine;
+    private Coroutine? m_peakCheckCoroutine;
 
     public Vector3 GroupPosition
     {
@@ -59,9 +60,11 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         m_kilnBridgeTransform = MapHandler.Instance.segments[4].segmentParent.transform.Find("Bridge");
 
-        m_peakCrowStartPos = new Vector3(m_peakEndTransform.position.x, MountainProgressHandler.Instance.progressPoints[^1].transform.position.y, m_peakEndTransform.position.z);
+        m_peakCrowStartPos = new Vector3(m_kilnBridgeTransform.position.x, MountainProgressHandler.Instance.progressPoints[^1].transform.position.y,
+            m_kilnBridgeTransform.position.z);
 
         // AddTombTriggers();
+        
         ResumeSpawning();
     }
 
@@ -284,6 +287,12 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         get => m_currentProgressPointIndex;
     }
 
+    public bool WaitingToSpawn
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => m_demonSpawnCoroutine != null;
+    }
+
     public bool IsCharacterInTomb(Character character)
     {
         // TODO: Reenable if turns out the demon spawns anyways.
@@ -333,7 +342,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         if (m_previousProgressPoint != 0)
         {
-            yield return new WaitUntil(() => m_previousProgressPoint != MapHandler.Instance.currentSegment);
+            yield return new WaitUntil(() => m_previousProgressPoint != GetCurrentProgressPointIndex());
         }
 
         m_currentProgressPointIndex = GetCurrentProgressPointIndex();
@@ -378,7 +387,67 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             }
         }
 
+
+        if (m_currentProgressPointIndex == 4)
+        {
+            if (m_peakCheckCoroutine != null)
+            {
+                StopCoroutine(m_peakCheckCoroutine);
+            }
+            m_peakCheckCoroutine = StartCoroutine(CheckForPeak());
+        }
+
         m_previousProgressPoint = m_currentProgressPointIndex;
+    }
+
+    private IEnumerator CheckForPeak()
+    {
+        while (!m_reachedPeak)
+        {
+            yield return new WaitForSecondsRealtime(5f);
+            
+            if (PhotonNetwork.IsMasterClient)
+            {
+                UpdateGroupAverage();
+                
+                if (MountainProgressHandler.Instance.IsAtPeak(GroupPosition) && !m_reachedPeak)
+                {
+                    m_reachedPeak = true;
+                    ShrinkAllDemons();
+
+                    ResumeSpawning(1.5f);
+                }
+            }
+
+        }
+    }
+
+    private void UpdateGroupAverage()
+    {
+        var groupCenterAverage = Vector3.zero;
+        var totalPlayers = 0;
+        var allPlayerCharacters = PlayerHandler.GetAllPlayerCharacters();
+
+        for (var i = 0; i < allPlayerCharacters.Count; i++)
+        {
+            var playerCharacter = allPlayerCharacters[i];
+
+            if (playerCharacter && !playerCharacter.data.dead && !playerCharacter.IsGhost)
+            {
+                groupCenterAverage += playerCharacter.Center;
+                totalPlayers++;
+            }
+        }
+
+        if (totalPlayers != 0)
+        {
+            groupCenterAverage /= totalPlayers;
+            GroupPosition = groupCenterAverage;
+        }
+        else
+        {
+            GreenDemonChallenge.Log.LogError($"No alive players were found.");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -389,12 +458,13 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         return currentProgress switch
         {
-            0 => mh.BiomeIsPresent(Biome.BiomeType.Tropics) ? 1 : 2,
-            1 or 2 => mh.BiomeIsPresent(Biome.BiomeType.Alpine) ? 3 : 4,
-            3 or 4 => 5,
-            5 => 6,
-            6 => 7,
-            _ => Mathf.Clamp(mh.currentSegment + 1, 0, mh.biomes.Count - 1)
+            0 => 1,
+            1 => 2,
+            2 => 3,
+            3 => 4,
+            4 => 5,
+            5 => 5,
+            _ => Mathf.Clamp(currentProgress + 1, 0, mh.biomes.Count - 1)
         };
     }
 
@@ -409,10 +479,10 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         return currentSegment switch
         {
             0 => 0,
-            1 => mh.BiomeIsPresent(Biome.BiomeType.Tropics) ? 1 : 2,
-            2 => mh.BiomeIsPresent(Biome.BiomeType.Alpine) ? 3 : 4,
-            3 => 5,
-            4 => mph.IsAtPeak(GroupPosition) ? 7 : 6,
+            1 => 1,
+            2 => 2,
+            3 => 3,
+            4 => mph.IsAtPeak(GroupPosition) ? 5 : 4,
             _ => mph.maxProgressPointReached
         };
     }
@@ -452,17 +522,36 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         
         switch (mh.GetCurrentSegment())
         {
+            case Segment.Caldera:
+                // Caldera's campfire transform is at 0 so no bueno.
+                crowSegmentEndPosition = campfire!.transform.GetChild(0).position;
+                break;
             case Segment.TheKiln:
                 // In THE KILN, we need to calculate progression with the PEAK segment 
                 crowSegmentEndPosition = m_peakCrowStartPos;
                 crowSegmentStartPosition = m_kilnBridgeTransform.position;
+
+                crowSegmentStartPosition.y = currentSegmentS.reconnectSpawnPos.position.y;
+
+                if (m_reachedPeak)
+                {
+                    crowSegmentEndPosition = m_peakEndTransform.position;
+                    crowSegmentStartPosition = m_peakCrowStartPos;
+
+                    segmentStartPosition = m_peakCrowStartPos;
+                    segmentEndPosition = m_peakEndTransform.position;
+                }
+                
                 break;
             
             case Segment.Peak:
                 // We are at peak. Use the flare box as your end position.
                 crowSegmentEndPosition = m_peakEndTransform.position;
                 crowSegmentStartPosition = m_peakCrowStartPos;
+                
+                segmentStartPosition = m_peakCrowStartPos;
                 segmentEndPosition = m_peakEndTransform.position;
+                
                 break;
         }
         
@@ -515,16 +604,6 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             }
         }
 
-
-        // Should we try and check that EVERYONE is at peak before spawning the demon? Maybe...
-        if (PhotonNetwork.IsMasterClient && mph.IsAtPeak(groupCenterAverage) && !m_reachedPeak)
-        {
-            m_reachedPeak = true;
-            ShrinkAllDemons();
-
-            ResumeSpawning(1.5f);
-        }
-
         CurrentCrowCompletion = Mathf.Lerp(1, 0, distanceFromPlayersToEnd / distanceFromStartToEnd);
 
         CurrentClimbCompletion = Util.RangeLerp(0f,
@@ -534,24 +613,23 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             groupCenterAverage.y
         );
 
-        return m_currentProgressPointIndex switch
+        return mh.GetCurrentSegment() switch
         {
-            0 =>
-                // SHORE: 2nd longest ground.
+            Segment.Beach =>
                 CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.25f,
-            1 or 2 =>
+            Segment.Tropics =>
                 // TROPICS + ROOTS: Shortest ground (except for the kiln)
                 CurrentCrowCompletion >= 0.35f && CurrentClimbCompletion >= 0.25f,
-            3 or 4 =>
+            Segment.Alpine =>
                 // ALPINE + MESA: longest grounds
                 CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.25f,
-            5 =>
+            Segment.Caldera =>
                 // Caldera is longer that it's high, so only use the crow progression
                 CurrentCrowCompletion >= 0.5f,
-            6 =>
+            Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
                 CurrentClimbCompletion >= 0.5f,
-            7 =>
+            Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
                 CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.5f,
             _ => CurrentCrowCompletion > 0.5f && CurrentClimbCompletion >= 0.25f
@@ -561,24 +639,24 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MeetsCurrentCrowCompletion()
     {
-        return m_currentProgressPointIndex switch
+        return MapHandler.Instance.GetCurrentSegment() switch
         {
-            0 =>
+            Segment.Beach =>
                 // SHORE: 2nd longest ground.
                 CurrentCrowCompletion >= 0.5f,
-            1 or 2 =>
+            Segment.Tropics =>
                 // TROPICS + ROOTS: Shortest ground (except for the kiln)
                 CurrentCrowCompletion >= 0.35f,
-            3 or 4 =>
+            Segment.Alpine =>
                 // ALPINE + MESA: longest grounds
                 CurrentCrowCompletion >= 0.5f,
-            5 =>
+            Segment.Caldera =>
                 // Caldera is longer that it's high, so only use the crow progression
                 CurrentCrowCompletion >= 0.5f,
-            6 =>
+            Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
                 true,
-            7 =>
+            Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
                 CurrentCrowCompletion >= 0.5f,
             _ => CurrentCrowCompletion > 0.5f
@@ -588,24 +666,24 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MeetsCurrentClimbCompletion()
     {
-        return m_currentProgressPointIndex switch
+        return MapHandler.Instance.GetCurrentSegment() switch
         {
-            0 =>
+            Segment.Beach =>
                 // SHORE: 2nd longest ground.
                 CurrentClimbCompletion >= 0.25f,
-            1 or 2 =>
+            Segment.Tropics =>
                 // TROPICS + ROOTS: Shortest ground (except for the kiln)
                 CurrentClimbCompletion >= 0.25f,
-            3 or 4 =>
+            Segment.Alpine =>
                 // ALPINE + MESA: longest grounds
                 CurrentClimbCompletion >= 0.25f,
-            5 =>
+            Segment.Caldera =>
                 // Caldera is longer that it's high, so only use the crow progression
                 true,
-            6 =>
+            Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
                 CurrentClimbCompletion >= 0.5f,
-            7 =>
+            Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
                 CurrentClimbCompletion >= 0.5f,
             _ => CurrentClimbCompletion >= 0.25f
@@ -618,10 +696,28 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         var currentSegment = mh.segments[mh.currentSegment];
 
+        var spawnPosition = currentSegment.reconnectSpawnPos.position;
+
+        if (mh.GetCurrentSegment() == Segment.Peak)
+        {
+            spawnPosition = m_peakCrowStartPos;
+        }
+        else if (mh.GetCurrentSegment() == Segment.TheKiln)
+        {
+            spawnPosition = m_kilnBridgeTransform.position;
+            spawnPosition.y = mh.respawnTheKiln.transform.position.y;
+
+            // GetCurrentSegment can be peak but not 
+            if (m_reachedPeak)
+            {
+                spawnPosition = m_peakCrowStartPos;
+            }
+        }
+        
         for (var i = 0; i < greenDemonAmount; i++)
         {
             NetworkPrefabManager.SpawnNetworkPrefab(GreenDemonChallenge.GreenDemonPrefab.name,
-                currentSegment.reconnectSpawnPos.position + (Vector3.up * 10f) + (Vector3.right * i),
+                spawnPosition + (Vector3.up * 10f) + (Vector3.right * i),
                 Quaternion.identity);
         }
     }

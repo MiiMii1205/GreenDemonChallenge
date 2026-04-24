@@ -166,11 +166,12 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         EnableGreenDemonInTheKiln = Config.Bind("Biomes", "Enable The Kiln", true,
             "Enables/Disables the Green Demon for The Kiln");
         
-        StopGreenDemonInTomb =
-            Config.Bind("Biomes", "Stop in the Tomb", true, "Stops the Green Demon while in the Tomb");
+        // StopGreenDemonInTomb =
+        //     Config.Bind("Biomes", "Stop in the Tomb", true, "Stops the Green Demon while in the Tomb");
 
         EnableGreenDemonInTheKiln.SettingChanged += UpdateGreenDemonConfig;
-        StopGreenDemonInTomb.SettingChanged += UpdateGreenDemonConfig;
+        // StopGreenDemonInTomb.SettingChanged += UpdateGreenDemonConfig;
+        
         
         GreenDemonDelay.SettingChanged += UpdateGreenDemonConfig;
 
@@ -178,7 +179,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         RoomGreenDemonSpeed = GreenDemonSpeed.Value;
         RoomGreenDemonCaughtEffect = GreenDemonCaughtEffect.Value;
         RoomEnableGreenDemonInTheKiln = EnableGreenDemonInTheKiln.Value;
-        RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
+        // RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
         RoomGreenDemonDelay = GreenDemonDelay.Value;
         
         RoomGreenDemonMode = GreenDemonMode.Value;
@@ -386,15 +387,15 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 RoomEnableGreenDemonInTheKiln = v;
             }
         });
-        
-        Manager.RegisterRoomProperty<bool>(nameof(RoomStopGreenDemonInTomb), RoomEventType.All, v =>
-        {
-            if (!PhotonNetwork.IsMasterClient)
-            {
-                Log.LogInfo($"Received {v} as new {nameof(RoomStopGreenDemonInTomb)}!");
-                RoomStopGreenDemonInTomb = v;
-            }
-        });
+        //
+        // Manager.RegisterRoomProperty<bool>(nameof(RoomStopGreenDemonInTomb), RoomEventType.All, v =>
+        // {
+        //     if (!PhotonNetwork.IsMasterClient)
+        //     {
+        //         Log.LogInfo($"Received {v} as new {nameof(RoomStopGreenDemonInTomb)}!");
+        //         RoomStopGreenDemonInTomb = v;
+        //     }
+        // });
 
         Manager.RegisterRoomProperty<int>(nameof(RoomGreenDemonCaughtEffect), RoomEventType.All, v =>
         {
@@ -538,9 +539,9 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             RoomEnableGreenDemonInTheKiln = EnableGreenDemonInTheKiln.Value;
             Manager.SetRoomProperty(nameof(RoomEnableGreenDemonInTheKiln), EnableGreenDemonInTheKiln.Value);
             
-            Log.LogInfo($"Sending our current {nameof(RoomStopGreenDemonInTomb)} of {StopGreenDemonInTomb.Value}...");
-            RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
-            Manager.SetRoomProperty(nameof(RoomStopGreenDemonInTomb), StopGreenDemonInTomb.Value);
+            // Log.LogInfo($"Sending our current {nameof(RoomStopGreenDemonInTomb)} of {StopGreenDemonInTomb.Value}...");
+            // RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
+            // Manager.SetRoomProperty(nameof(RoomStopGreenDemonInTomb), StopGreenDemonInTomb.Value);
             
             Log.LogInfo($"Sending our current {nameof(RoomGreenDemonCaughtEffect)} of {GreenDemonCaughtEffect.Value}...");
             RoomGreenDemonCaughtEffect = GreenDemonCaughtEffect.Value;
@@ -671,7 +672,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     public static int RoomGreenDemonAmount = 1;
 
     public static bool RoomEnableGreenDemonInTheKiln;
-    public static bool RoomStopGreenDemonInTomb;
+    // public static bool RoomStopGreenDemonInTomb;
     public static float RoomGreenDemonDelay;
     public static GreenDemonModes RoomGreenDemonMode;
     

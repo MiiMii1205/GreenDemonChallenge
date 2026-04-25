@@ -21,7 +21,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 {
     public static List<GreenDemon> AllDemons = [];
     public SphereCollider collider = null!;
-    
+
     public Vector3 centerOfMass;
 
     public float mass = 5f;
@@ -82,24 +82,23 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         source ??= GetComponent<AudioSource>();
         mainRenderer ??= GetComponent<Renderer>();
         m_demonTransform ??= mainRenderer.transform;
-        
     }
 
     private void Start()
     {
         GreenDemonChallenge.Log.LogInfo("SPAWN A GREEN DEMON!");
         GreenDemonGUIManager.Instance.TheDemonIsHere();
-        
+
         m_inActiveChase = true;
         AllDemons.Add(this);
         GreenDemonGUIManager.Instance.AddDemonTracker(this);
-        
+
         m_minSpeedSqrDistance = Mathf.Pow(source.minDistance, 2);
         m_maxSpeedSqrDistance = Mathf.Pow(source.maxDistance, 2);
-        
+
         // Y speeds are half 
         m_baseSpeed = new Vector3(1f, 0.5f, 1f);
-        
+
         m_roomSpeedMultiplier = GreenDemonChallenge.RoomGreenDemonSpeed switch
         {
             GreenDemonSpeeds.SLOW => 0.5f,
@@ -117,7 +116,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
         // Wait for the animation to finish.
         yield return new WaitUntil(() => !animator.IsPlaying("GreenDemonSpawn"));
-        
+
         // Wait another delay before starting the chase
         yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay);
 
@@ -133,12 +132,12 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void PlayImpactSound(Vector3 pos)
     {
-        for (int i = 0, length= m_impact.Length; i < length; ++i)
+        for (int i = 0, length = m_impact.Length; i < length; ++i)
         {
             m_impact[i].Play(pos);
         }
     }
-    
+
     private void Update()
     {
         if (!m_isSpawning && !m_isConsumed)
@@ -163,8 +162,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             if (m_stopTick > 0f)
             {
                 m_stopTick -= Time.fixedDeltaTime;
-                
-            } else if (view.IsMine && HasTarget)
+            }
+            else if (view.IsMine && HasTarget)
             {
                 var movementForce = Vector3.Scale((TargetPosition - Center).normalized, CalcMoveSpeed());
 
@@ -188,9 +187,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     public Vector3 TargetPosition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get=> m_chasingCharacter?.Center ?? GreenDemonHandler.Instance.GroupPosition;
+        get => m_chasingCharacter?.Center ?? GreenDemonHandler.Instance.GroupPosition;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Vector3 CalcMoveSpeed()
     {
@@ -223,10 +222,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             vel = 0;
         }
     }
+
     private void OnCollisionEnter(Collision col)
     {
         if (m_inActiveChase && col.gameObject.IsInLayer(m_characterLayerMask) &&
-            col.gameObject.GetComponentInParent<Character>() is {} character && character &&
+            col.gameObject.GetComponentInParent<Character>() is { } character && character &&
             character.IsLocal && TargetIsValid(character))
         {
             CatchPlayer(Character.localCharacter);
@@ -237,8 +237,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 (Vector3.Scale(col.impulse.normalized, CalcMoveSpeed()) + (Vector3.Scale(
                     (TargetPosition - Center).normalized, -CalcMoveSpeed() * 0.5f)) * Time.fixedDeltaTime),
                 ForceMode.Acceleration);
-            
-            if(view.IsMine)
+
+            if (view.IsMine)
             {
                 PlayImpactSounds(col);
             }
@@ -246,7 +246,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     }
 
     private void OnCollisionStay(Collision col)
-    { 
+    {
         // No need to check for collisions here since it's expensive and the Update will eventually catch them.
         if (!col.gameObject.IsInLayer(m_characterLayerMask))
         {
@@ -254,7 +254,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 (Vector3.Scale(col.impulse.normalized, CalcMoveSpeed()) + (Vector3.Scale(
                     (TargetPosition - Center).normalized, -CalcMoveSpeed())) * Time.fixedDeltaTime),
                 ForceMode.Acceleration);
-            
+
             if (view.IsMine)
             {
                 PlayImpactSounds(col);
@@ -279,11 +279,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             m_posSyncer.forceSyncFrames = frames;
         }
     }
-    
+
     public bool HasTarget
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get=>m_chasingCharacter;
+        get => m_chasingCharacter;
     }
 
     public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
@@ -374,7 +374,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private static int RemoveFlairFromBackpack(BackpackData backpackData, BackpackVisuals backpackVisuals)
     {
         var flareRemoved = 0;
-        
+
         for (var i = 0; i < backpackData.itemSlots.Length; i++)
         {
             if (backpackData.itemSlots[i].IsEmpty())
@@ -541,20 +541,22 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     if (IsHoldingBackpack(character) && currentItem)
                     {
                         // Currently holding the backpack
-                        if (currentItem is Backpack b)
+                        if (currentItem is Backpack b &&
+                            b.data.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bd))
                         {
+                            itemRemoved += bd.FilledSlotCount();
+                            itemRemoved++;
                             character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
                             PhotonNetwork.Destroy(character.data.currentItem.gameObject);
-                            itemRemoved += b.backpackReference.Value.Item2.GetData().FilledSlotCount();
-                            itemRemoved++;
                         }
                     }
                     else if (character.player.backpackSlot.hasBackpack)
                     {
                         // Currenty wearking the backpack
-                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bbv)
+                        if (character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                                out BackpackData bd))
                         {
-                            itemRemoved += bbv.GetBackpackData().FilledSlotCount();
+                            itemRemoved += bd.FilledSlotCount();
                             character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
                             itemRemoved++;
                         }
@@ -589,7 +591,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                             character.player.tempFullSlot)), false);
 
                 GreenDemonChallenge.Log.LogInfo($"Removed {itemRemoved} item(s).");
-                
+
                 break;
             }
 
@@ -623,18 +625,20 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     if (IsHoldingBackpack(character) && currentItem)
                     {
                         // Currently holding the backpack
-                        if (currentItem is Backpack b)
+                        if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                                out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
                         {
-                            flareRemoved += RemoveFlairFromBackpack(b.backpackReference.Value.Item2.GetData(),
-                                b.backpackReference.Value.Item2.GetVisuals());
+                            flareRemoved += RemoveFlairFromBackpack(bd, v);
                         }
                     }
                     else if (character.player.backpackSlot.hasBackpack)
                     {
                         // Currenty wearking the backpack
-                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bbv)
+                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
+                            character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                                out BackpackData bd))
                         {
-                            flareRemoved += RemoveFlairFromBackpack(bbv.GetBackpackData(), bbv);
+                            flareRemoved += RemoveFlairFromBackpack(bd, bv);
                         }
                     }
                 }
@@ -698,6 +702,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         }
                     }
                 }
+
                 break;
             }
 
@@ -730,10 +735,10 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     if (IsHoldingBackpack(character) && currentItem)
                     {
                         // Currently holding the backpack
-                        if (currentItem.TryGetComponent(out Backpack b))
+                        if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                                out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
                         {
-                            cookedItems += CookItemFromBackpack(b.backpackReference.Value.Item2.GetData(),
-                                b.backpackReference.Value.Item2.GetVisuals());
+                            cookedItems += CookItemFromBackpack(bd, v);
                         }
 
                         currentItem.cooking.FinishCooking();
@@ -741,9 +746,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     else if (character.player.backpackSlot.hasBackpack)
                     {
                         // Currenty wearking the backpack
-                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bbv)
+                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
+                            character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                                out BackpackData bd))
                         {
-                            cookedItems += CookItemFromBackpack(bbv.GetBackpackData(), bbv);
+                            cookedItems += CookItemFromBackpack(bd, bv);
                         }
 
                         if (character.player.backpackSlot.data.TryGetDataEntry<IntItemData>(DataEntryKey.CookedAmount,
@@ -752,7 +759,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                             ++cooked.Value;
                             cookedItems++;
 
-                            if (bbv is BackpackOnBackVisuals onBack)
+                            if (bv is BackpackOnBackVisuals onBack)
                             {
                                 onBack.RefreshCooking();
                             }
@@ -792,9 +799,12 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         }
                     }
 
-                    if (s.prefab.cooking && s.prefab.cooking.hasExplosion &&
-                        s.prefab.cooking.additionalCookingBehaviors.Any(cb => cb is CookingBehavior_Explode) ||
-                        (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab)))
+                    if (s.prefab.cooking &&
+                        (s.prefab.cooking.hasExplosion &&
+                         s.prefab.cooking.additionalCookingBehaviors.Any(cb => cb is CookingBehavior_Explode)) || (
+                            (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
+                        )
+                       )
                     {
                         GreenDemonChallenge.Log.LogInfo(
                             $"{s.prefab.gameObject} has special interaction when being cooked! Automatically droping cooked {s.prefab.gameObject}...");
@@ -862,11 +872,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             case GreenDemonCaughtEffects.DYNA_BRUH:
                 ForceGiveItem(character, 106, GreenDemonCaughtEffects.HALF_INJURY);
                 break;
-            
+
             case GreenDemonCaughtEffects.MANDRAKE:
                 ForceGiveItem(character, 155, GreenDemonCaughtEffects.EPPY);
                 break;
-            
+
             case GreenDemonCaughtEffects.SCORPION:
                 ForceGiveItem(character, 111, GreenDemonCaughtEffects.HALF_POISON);
                 break;
@@ -930,9 +940,10 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         Quaternion.identity).GetComponent<Item>();
 
                     block.lastThrownCharacter = character;
-                    
-                    var vv = ((character.refs.head.transform.position - block.transform.position).normalized * 25f) / Time.deltaTime;
-                    
+
+                    var vv = ((character.refs.head.transform.position - block.transform.position).normalized * 25f) /
+                             Time.deltaTime;
+
                     block.rig.AddForce(vv, ForceMode.Acceleration);
                 }
                 else
@@ -981,7 +992,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 if (UnnamedCompatibilityHandler.Enabled)
                 {
-                    UnnamedCompatibilityHandler.SpawnFireball(character);
+                    GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_ThrowFireball), RpcTarget.MasterClient, character.view.ViewID);
                 }
                 else
                 {
@@ -1001,19 +1012,22 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 bees.photonView.RPC(nameof(BeeSwarm.SetBeesAngryRPC), RpcTarget.All, true);
                 break;
             }
-            
+
             case GreenDemonCaughtEffects.SLIP:
             {
-                var peel = PhotonNetwork.InstantiateItem("Berrynana Peel Pink Variant", character.Head, Quaternion.identity);
-                peel.GetComponent<PhotonView>().RPC(nameof(BananaPeel.RPCA_TriggerBanana), RpcTarget.All, character.view.ViewID);
-                
+                var peel = FindAnyObjectByType<BananaPeel>()?.gameObject ?? PhotonNetwork.InstantiateItem("Berrynana Peel Pink Variant", character.Head,
+                    Quaternion.identity);
+
+                peel.GetComponent<PhotonView>().RPC(nameof(BananaPeel.RPCA_TriggerBanana), RpcTarget.All,
+                    character.view.ViewID);
+
                 break;
             }
 
             case GreenDemonCaughtEffects.NO_STAM:
             {
                 character.UseStamina(1.0f, false);
-                GreenDemonHandler.Instance.StartCoroutine(GreenDemonHandler.KeepStamEmpty(character,60f));
+                GreenDemonHandler.Instance.StartCoroutine(GreenDemonHandler.KeepStamEmpty(character, 60f));
                 break;
             }
             case GreenDemonCaughtEffects.W_KEY_STUCK:
@@ -1029,9 +1043,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     warning = false,
                     totalTime = 15f
                 });
-                
+
                 character.view.RPC(nameof(CharacterMovement.JumpRpc), RpcTarget.All, false);
-                
+
                 break;
             }
 
@@ -1048,7 +1062,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 UnnamedCompatibilityHandler.TryTurnIntoUnnamed(ref it);
             }
-            
+
             GameUtils.instance.InstantiateAndGrab(it, character);
         }
         else
@@ -1137,7 +1151,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         if (!UnnamedCompatibilityHandler.Enabled)
         {
             const ushort flareItemId = 32;
-            
+
             if (!character.player.backpackSlot.IsEmpty())
             {
                 if (IsHoldingBackpack(character) && character.data.currentItem)
@@ -1259,7 +1273,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     {
         PlayImpactSound(position);
     }
-    
+
     private void UpdateChase()
     {
         if (m_chaseTimeout > m_chaseUpdateCooldown)
@@ -1279,7 +1293,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
 
         // Rotate towards movement
-        m_demonTransform.rotation = Quaternion.RotateTowards(m_demonTransform.rotation, Quaternion.LookRotation(m_movement), 30f*Time.deltaTime);
+        m_demonTransform.rotation = Quaternion.RotateTowards(m_demonTransform.rotation,
+            Quaternion.LookRotation(m_movement), 30f * Time.deltaTime);
     }
 
     [PunRPC]
@@ -1290,15 +1305,16 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             GameUtils.instance.StartCoroutine(Shrink());
         }
     }
+
     [PunRPC]
     public void RPC_StopDemon(float time)
     {
         m_stopTick = time;
     }
-
+    
     public GameObject? m_vfxPrefab;
     public GameObject? m_poofVfxPrefab;
-    private Vector3 m_movement =Vector3.forward;
+    private Vector3 m_movement = Vector3.forward;
     private float m_minSpeedSqrDistance;
     private float m_maxSpeedSqrDistance;
     private Vector3 m_baseSpeed;

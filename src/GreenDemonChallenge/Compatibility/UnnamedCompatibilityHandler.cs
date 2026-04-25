@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using GreenDemonChallenge.Behaviour;
+using PEAKLib.Core;
 using Photon.Pun;
+using Unity.Mathematics;
 using UnityEngine;
 using UnnamedProducts;
 using UnnamedProducts.Behaviours;
 using UnnamedProducts.Behaviours.Item.GarbageBag;
 using Zorro.Core;
 using Zorro.Core.Serizalization;
+using Object = UnityEngine.Object;
 
 namespace GreenDemonChallenge.Compatibility;
 
@@ -34,18 +37,21 @@ public static class UnnamedCompatibilityHandler
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void SetCharacterOnFire(Character character)
     {
-        var bd = character.GetBodypart(BodypartType.Hip);
+        var bd = character.refs.head;
         var fb = PhotonNetwork.Instantiate(StickyFireballController.FireballPrefab.name, bd.rig.transform.position,
             bd.rig.transform.rotation);
-
+        
         var stick = fb.GetComponent<StickyFireballController>();
-        stick.m_canStick = true;
+        stick.StickTo(character.refs.head.gameObject);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void SpawnFireball(Character character)
     {
-        PhotonNetwork.Instantiate($"{UnnamedPlugin.Id}:AntifreezeExplosion", character.Center, Quaternion.identity);
+        if (NetworkPrefabManager.TryGetNetworkPrefab($"{UnnamedPlugin.Id}:AntifreezeExplosion", out var p))
+        {
+            Object.Instantiate(p, character.Center, Quaternion.identity);
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
@@ -80,18 +86,18 @@ public static class UnnamedCompatibilityHandler
             if (GreenDemon.IsHoldingBackpack(character) && currentItem)
             {
                 // Currently holding the backpack
-                if (currentItem.TryGetComponent<Backpack>(out Backpack b))
+                if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bd) && b.TryGetComponent(out BackpackVisuals bv))
                 {
-                    unnamedItem += ChangeBackpackItems(b.backpackReference.Value.Item2.GetData(),
-                        b.backpackReference.Value.Item2.GetVisuals());
+                    unnamedItem += ChangeBackpackItems(bd, bv);
                 }
             }
             else if (character.player.backpackSlot.hasBackpack)
             {
                 // Currenty wearking the backpack
-                if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is { } bbv)
+                if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is { } bbv &&
+                    character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bd))
                 {
-                    unnamedItem += ChangeBackpackItems(bbv.GetBackpackData(), bbv);
+                    unnamedItem += ChangeBackpackItems(bd, bbv);
                 }
             }
         }

@@ -235,6 +235,15 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
+    public void RPC_ThrowFireball(int charView)
+    {
+        if (Character.GetCharacterWithPhotonID(charView, out var result))
+        {
+            UnnamedCompatibilityHandler.SpawnFireball(result);
+        }
+    }
+
+    [PunRPC]
     public void RPC_RespawnFlares(Vector3 spawnPos, int amountToRespawn)
     {
         if (PhotonNetwork.IsMasterClient)

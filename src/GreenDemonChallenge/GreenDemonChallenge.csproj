@@ -11,7 +11,7 @@
         <PackageReference Update="Hamunii.BepInEx.AutoPlugin" Version="*"/>
         <PackageReference Include="Snosz-PhotonCustomPropsUtils" Version="1.1.0" Private="False"/>
         <PackageReference Include="PEAKModding.PEAKLib.Core" Version="*"/>
-        <PackageReference Include="OracleTeam-UnnamedProducts" Version="*" Private="False"/>
+        <PackageReference Include="OracleTeam-UnnamedProducts" Version="1.2.3" Private="False"/>
         <PackageReference Include="legocool-Lucky_Blocks" Version="*" Private="False"/>
     </ItemGroup>
 

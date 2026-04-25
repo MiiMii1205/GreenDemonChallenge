@@ -15,10 +15,13 @@ namespace GreenDemonChallenge.Behaviour;
 
 public class GreenDemonHandler : MonoBehaviourPunCallbacks
 {
+    private const float CalderaBuffTime = 120f;
     public static GreenDemonHandler Instance = null!;
 
     private Transform m_peakEndTransform = null!;
     private Vector3 m_peakCrowStartPos;
+    private Vector3 m_peakSpawnPoint;
+    private Vector3 m_kilnSpawnPoint;
     private Transform m_kilnBridgeTransform = null!;
 
     private Bounds m_tombBounds;
@@ -26,6 +29,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     private Coroutine? m_demonSpawnCoroutine;
     private Coroutine? m_peakCheckCoroutine;
 
+    private bool m_spawnIsDone;
     public Vector3 GroupPosition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,6 +67,14 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         m_peakCrowStartPos = new Vector3(m_kilnBridgeTransform.position.x, MountainProgressHandler.Instance.progressPoints[^1].transform.position.y,
             m_kilnBridgeTransform.position.z);
 
+        var peakBridge = PeakHandler.Instance.transform.Find("Bridge");
+        
+        m_peakSpawnPoint = new Vector3(peakBridge.position.x, m_peakCrowStartPos.y,
+            MountainProgressHandler.Instance.progressPoints[^1].transform.position.z);
+        
+        m_kilnSpawnPoint = new Vector3(m_kilnBridgeTransform.position.x, m_kilnBridgeTransform.position.y + 49.57996f,
+            m_kilnBridgeTransform.position.z);
+
         // AddTombTriggers();
         
         ResumeSpawning();
@@ -74,7 +86,8 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         {
             StopCoroutine(m_demonSpawnCoroutine);
         }
-
+        
+        m_spawnIsDone = false;
         m_demonSpawnCoroutine = StartCoroutine(CheckForProgression(delay));
     }
 
@@ -202,6 +215,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 photonView.RPC(nameof(RPC_AddPlayerToTombEntry), RpcTarget.All, otherPlayer.UserId);
             }
         }
+        
     }
 
     private void OnCharacterDied(Character character)
@@ -269,12 +283,22 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     private HashSet<string> m_playersEnteredTomb = [];
 
     private bool m_isTombOpened;
-    private bool m_reachedPeak = false;
+    internal bool m_reachedPeak = false;
     private int m_currentProgressPointIndex;
     private int m_previousProgressPoint;
     private int m_nextProgressPointIndex;
+    private float m_calderBuffsStartTime;
+    private float m_calderBuffsEndTime;
 
     public float CurrentCrowCompletion
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    }
+
+    public bool HasCalderaBuffs
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
@@ -299,7 +323,12 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     public bool WaitingToSpawn
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => m_demonSpawnCoroutine != null;
+        get => m_demonSpawnCoroutine != null && !m_spawnIsDone;
+    }
+    public bool HasSpawned
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => m_spawnIsDone;
     }
 
     public bool IsCharacterInTomb(Character character)
@@ -396,6 +425,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             }
         }
 
+        m_spawnIsDone = true;
 
         if (m_currentProgressPointIndex == 4)
         {
@@ -403,6 +433,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             {
                 StopCoroutine(m_peakCheckCoroutine);
             }
+
             m_peakCheckCoroutine = StartCoroutine(CheckForPeak());
         }
 
@@ -430,7 +461,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         }
     }
-
+    
     private void UpdateGroupAverage()
     {
         var groupCenterAverage = Vector3.zero;
@@ -545,9 +576,9 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 if (m_reachedPeak)
                 {
                     crowSegmentEndPosition = m_peakEndTransform.position;
-                    crowSegmentStartPosition = m_peakCrowStartPos;
+                    crowSegmentStartPosition = m_peakSpawnPoint;
 
-                    segmentStartPosition = m_peakCrowStartPos;
+                    segmentStartPosition = m_peakSpawnPoint;
                     segmentEndPosition = m_peakEndTransform.position;
                 }
                 
@@ -556,9 +587,9 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
             case Segment.Peak:
                 // We are at peak. Use the flare box as your end position.
                 crowSegmentEndPosition = m_peakEndTransform.position;
-                crowSegmentStartPosition = m_peakCrowStartPos;
+                crowSegmentStartPosition = m_peakSpawnPoint;
                 
-                segmentStartPosition = m_peakCrowStartPos;
+                segmentStartPosition = m_peakSpawnPoint;
                 segmentEndPosition = m_peakEndTransform.position;
                 
                 break;
@@ -631,16 +662,16 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 CurrentCrowCompletion >= 0.35f && CurrentClimbCompletion >= 0.25f,
             Segment.Alpine =>
                 // ALPINE + MESA: longest grounds
-                CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.25f,
+                CurrentCrowCompletion >= 0.40f && CurrentClimbCompletion >= 0.25f,
             Segment.Caldera =>
                 // Caldera is longer that it's high, so only use the crow progression
-                CurrentCrowCompletion >= 0.5f,
+                CurrentCrowCompletion >= 0.4f,
             Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
-                CurrentClimbCompletion >= 0.5f,
+                CurrentClimbCompletion >= 1/3f,
             Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
-                CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.5f,
+                CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.15f,
             _ => CurrentCrowCompletion > 0.5f && CurrentClimbCompletion >= 0.25f
         };
     }
@@ -658,10 +689,10 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 CurrentCrowCompletion >= 0.35f,
             Segment.Alpine =>
                 // ALPINE + MESA: longest grounds
-                CurrentCrowCompletion >= 0.5f,
+                CurrentCrowCompletion >= 0.4f,
             Segment.Caldera =>
                 // Caldera is longer that it's high, so only use the crow progression
-                CurrentCrowCompletion >= 0.5f,
+                CurrentCrowCompletion >= 0.4f,
             Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
                 true,
@@ -691,10 +722,10 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 true,
             Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
-                CurrentClimbCompletion >= 0.5f,
+                CurrentClimbCompletion >= 1/3f,
             Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
-                CurrentClimbCompletion >= 0.5f,
+                CurrentClimbCompletion >= 0.25f,
             _ => CurrentClimbCompletion >= 0.25f
         };
     }
@@ -704,23 +735,30 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         var mh = MapHandler.Instance;
 
         var currentSegment = mh.segments[mh.currentSegment];
-
+        
         var spawnPosition = currentSegment.reconnectSpawnPos.position;
 
         if (mh.GetCurrentSegment() == Segment.Peak)
         {
-            spawnPosition = m_peakCrowStartPos;
+            spawnPosition = m_peakSpawnPoint;
         }
         else if (mh.GetCurrentSegment() == Segment.TheKiln)
         {
-            spawnPosition = m_kilnBridgeTransform.position;
-            spawnPosition.y = mh.respawnTheKiln.transform.position.y;
+            spawnPosition = m_kilnSpawnPoint;
 
             // GetCurrentSegment can be peak but not 
             if (m_reachedPeak)
             {
-                spawnPosition = m_peakCrowStartPos;
+                spawnPosition = m_peakSpawnPoint;
             }
+        }
+        
+        // Do a simple raycast to check the lowest point
+        
+        if (Physics.Raycast(spawnPosition + (Vector3.up * 10f), Vector3.down, out RaycastHit hit, 1000f,
+                HelperFunctions.GetMask(HelperFunctions.LayerType.TerrainMap)))
+        {
+            spawnPosition = hit.point;
         }
         
         for (var i = 0; i < greenDemonAmount; i++)
@@ -736,7 +774,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     {
         SpawnGreenDemon(position);
     }
-
+    
     public void SpawnGreenDemon(Vector3 position)
     {
         NetworkPrefabManager.SpawnNetworkPrefab(GreenDemonChallenge.GreenDemonPrefab.name,

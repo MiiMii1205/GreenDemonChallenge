@@ -48,7 +48,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
     public Action? OnPlayerCaught;
     public Action? OnShrink;
-    private PositionSyncer m_posSyncer = null!;
+    private PhysicsSyncer m_physSyncer = null!;
 
     private float m_shrinkDuration = 1.25f;
 
@@ -77,7 +77,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     {
         view ??= GetComponent<PhotonView>();
         AddPhysics();
-        m_posSyncer ??= GetComponent<PositionSyncer>();
+        m_physSyncer ??= GetComponent<PhysicsSyncer>();
         animator ??= GetComponent<Animator>();
         source ??= GetComponent<AudioSource>();
         mainRenderer ??= GetComponent<Renderer>();
@@ -98,6 +98,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
         // Y speeds are half 
         m_baseSpeed = new Vector3(1f, 0.5f, 1f);
+        m_kilnBaseSpeed = new Vector3(0.8f, 0.95f, 0.8f);
 
         m_roomSpeedMultiplier = GreenDemonChallenge.RoomGreenDemonSpeed switch
         {
@@ -190,10 +191,21 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         get => m_chasingCharacter?.Center ?? GreenDemonHandler.Instance.GroupPosition;
     }
 
+    private Vector3 BaseSpeed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get =>
+            MapHandler.Instance.currentSegment == 3
+                ? Vector3.one
+                : MapHandler.Instance.currentSegment == 4 && !GreenDemonHandler.Instance.m_reachedPeak
+                    ? m_kilnBaseSpeed
+                    : m_baseSpeed;
+    }
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Vector3 CalcMoveSpeed()
     {
-        return (m_baseSpeed + 0.ToVec()) * (Util.RangeLerp(
+        return ( BaseSpeed + 0.ToVec()) * (Util.RangeLerp(
             0.5f,
             1f,
             m_minSpeedSqrDistance,
@@ -268,15 +280,16 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         rig.mass = mass;
         centerOfMass = rig.centerOfMass;
         rig.interpolation = RigidbodyInterpolation.Interpolate;
+        rig.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         collider ??= GetComponent<SphereCollider>();
         m_catchRadius = collider.radius * 1.25f;
     }
 
     private void ForceSyncForFrames(int frames = 10)
     {
-        if (m_posSyncer)
+        if (m_physSyncer)
         {
-            m_posSyncer.forceSyncFrames = frames;
+            m_physSyncer.forceSyncFrames = frames;
         }
     }
 
@@ -1318,6 +1331,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private float m_minSpeedSqrDistance;
     private float m_maxSpeedSqrDistance;
     private Vector3 m_baseSpeed;
+    private Vector3 m_kilnBaseSpeed;
     private float m_roomSpeedMultiplier;
 
     private IEnumerator Shrink()

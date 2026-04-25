@@ -405,6 +405,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 RoomGreenDemonCaughtEffect = (GreenDemonCaughtEffects) v;
             }
         });
+        
         Manager.RegisterRoomProperty<float>(nameof(RoomGreenDemonDelay), RoomEventType.All, v =>
         {
             if (!PhotonNetwork.IsMasterClient)
@@ -414,6 +415,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             }
         });
         
+        PeakHandler.Instance.EndCutscene();
         foreach (var keyValuePair in RoomBiomeConfig)
         {
             var biomeSettingName = $"{keyValuePair.Key}_{nameof(RoomBiomeConfig)}";
@@ -662,7 +664,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         {
             var height = 128f + (32f) * 4f;
             GUI.Label(new Rect((Screen.width - 400f), (Screen.height - height), 400f, height),
-                GreenDemonHandler.Instance.WaitingToSpawn ? $"<color=green>[{Name} v{Version}]</color>\nProgression: {MountainProgressHandler.Instance.progressPoints[GreenDemonHandler.Instance.CurrentProgressPoint].title} \nCrow Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentCrowCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentCrowCompletion}</color> \nClimb Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentClimbCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentClimbCompletion}</color>"  : $"<color=green>[{Name} v{Version}]</color>\nProgression: ?" );
+                GreenDemonHandler.Instance.WaitingToSpawn ? $"<color=green>[{Name} v{Version}]</color>\nProgression: {MountainProgressHandler.Instance.progressPoints[GreenDemonHandler.Instance.CurrentProgressPoint].title} \nCrow Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentCrowCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentCrowCompletion}</color> \nClimb Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentClimbCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentClimbCompletion}</color>"  : $"<color=green>[{Name} v{Version}]</color>\nProgression: {(GreenDemonHandler.Instance.HasSpawned ? "SPAWNED" :  "?")}" );
         }
         
 #endif

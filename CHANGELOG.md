@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.1] - 2026-04-25
+
+### Added ###
+
+- Made Green Demons despawn when the credits starts
+
+### Changed ###
+
+- Replaced the demon's PositionSyncer script with a PhysicsSyncer for smoother movement.
+- Added a simple raycast to spawn the demon at a correct position
+- Spawning balancing
+  - CALDERA:
+    - Crow flight threshold 50% -> 40%
+  - MESA, ALPINE:
+    - Crow flight threshold 50% -> 40%
+  - THE KILN:
+    - Pull demon spawn point up a bit.
+    - Climb threshold 50% -> 33%
+  - PEAK:
+    - Put demon spawing position closer to the peak
+    - Climb threshold: 50% -> 15%
+- Tweaked demons speeds:
+  - THE KILN:
+    - Reduced demon altitude speed nerfs -50% -> -5%
+    - Reduced lateral speeds by 20%
+  - CALDERA:
+    - Removed altitude speed nerfs
+
 ## [1.0.0] - 2026-04-24
 
 - Initial Release

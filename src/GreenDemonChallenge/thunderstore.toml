@@ -8,7 +8,7 @@ repository = "https://thunderstore.io"
 namespace = "OracleTeam"
 name = "GreenDemonChallenge"
 description = "A wild Green Demon has appeared! Can you take the challenge and climb all the way to the PEAK?"
-websiteUrl = "" # TODO: Add a link to your mod repository here (optional)
+websiteUrl = "https://github.com/MiiMii1205/GreenDemonChallenge" # TODO: Add a link to your mod repository here (optional)
 containsNsfwContent = false
 
 [package.dependencies]

@@ -33,6 +33,14 @@ public static class GreenDemonPatcher
         }
     }
     
+    [HarmonyPatch(typeof(PeakHandler), nameof(PeakHandler.EndScreenComplete))]
+    [HarmonyPostfix]
+    public static void EndCutsceneCreditAwakePostfix(PeakHandler __instance)
+    {
+        // Congrats y'all won!
+        GreenDemonHandler.Instance.ShrinkAllDemons();
+    }
+    
     [HarmonyPatch(typeof(MapHandler), nameof(MapHandler.JumpToSegment))]
     [HarmonyPostfix]
     public static void JumpToPostfix(MapHandler __instance, Segment segment)
@@ -48,8 +56,6 @@ public static class GreenDemonPatcher
             case GreenDemonModes.HARD:
             {
                 GreenDemonHandler.Instance.StopAllDemon((MapHandler.PreviousCampfire?.burnsFor ?? 0f) + 0.25f);
-
-
                 break;
             }
             default:
@@ -99,8 +105,6 @@ public static class GreenDemonPatcher
                 case GreenDemonModes.HARD:
                 {
                     GreenDemonHandler.Instance.StopAllDemon(__instance.burnsFor + 1f);
-                    
-                    
                     break;
                 }
                 default:

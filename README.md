@@ -14,7 +14,9 @@ Halfway through each biome, a [Green Demon](https://vgchallenge.fandom.com/wiki/
 if it touches you... you're done.
 
 To keep things fair, the demon slows down as it gets closer, and it's a bit slower at going up or down.
-It will also play a little tune, so you can easily know where it currently is. There is also a visual HUD tracker that tracks the demon on screen.
+It will also play a little tune, so you can easily know where it currently is. 
+There is also a visual HUD tracker that tracks the demon on screen.
+
 By default, they also despawn after lighting the next [campfire](https://peak.wiki.gg/wiki/Campfire).
 
 ## 🧠 Tips ##

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-04-25
+
+### Removed ###
+
+- Removed unwanted code
+
 ## [1.0.1] - 2026-04-25
 
 ### Added ###

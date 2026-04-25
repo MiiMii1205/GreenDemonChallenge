@@ -415,7 +415,6 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             }
         });
         
-        PeakHandler.Instance.EndCutscene();
         foreach (var keyValuePair in RoomBiomeConfig)
         {
             var biomeSettingName = $"{keyValuePair.Key}_{nameof(RoomBiomeConfig)}";

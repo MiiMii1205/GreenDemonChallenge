@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3] - 2026-04-29
+
+### Changed ###
+
+- Reducced bundle sizes.
+- Added EQs, reberbs to chase loop.
+
 ## [1.0.2] - 2026-04-25
 
 ### Removed ###

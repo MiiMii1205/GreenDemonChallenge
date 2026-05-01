@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0] - 2026-05-01
+
+### Added ###
+
+- Added support for [TimeTheme](https://thunderstore.io/c/peak/p/OracleTeam/TimeTheme/)
+
+### Changed ###
+
+- Slight tracker optimisations
+- Fixed soft dependencies
+- Fixed some null refs issues when updating ui colors
+
 ## [1.0.3] - 2026-04-29
 
 ### Changed ###

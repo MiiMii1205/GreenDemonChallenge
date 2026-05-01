@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using GreenDemonChallenge.Compatibility;
 using GreenDemonChallenge.Data;
 using pworld.Scripts.Extensions;
 using UnityEngine;
@@ -17,10 +18,11 @@ public class GreenDemonTracker : UIBehaviour
     public CanvasGroup m_group = null!;
     private RectTransform m_rectTransform = null!;
 
-    private RectTransform m_rotatorTransform = null!;
-    private RectTransform m_demonTransform = null!;
+    internal RectTransform m_rotatorTransform = null!;
+    public Image m_arrowImgae = null!;
+    internal RectTransform m_demonTransform = null!;
 
-    private RawImage m_demonImage = null!;
+    internal RawImage m_demonImage = null!;
 
     public static List<GreenDemonTracker> AllTrackers = [];
     
@@ -78,6 +80,11 @@ public class GreenDemonTracker : UIBehaviour
         AllTrackers.Add(this);
         
         RefreshTrackerVisibility();
+
+        if (TimeThemeCompatibilityHandler.Enabled)
+        {
+            TimeThemeCompatibilityHandler.InitTracker(this);
+        }
         
         if (m_alphaTarget != m_group.alpha)
         {
@@ -205,6 +212,8 @@ public class GreenDemonTracker : UIBehaviour
         m_group ??= GetComponent<CanvasGroup>();
 
         m_rotatorTransform ??= transform.Find("DemonArrowRotator").GetComponent<RectTransform>();
+        m_arrowImgae ??= m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
+        
         m_demonTransform ??= transform.Find("DemonImage").GetComponent<RectTransform>();
         m_demonImage ??= m_demonTransform.GetComponent<RawImage>();
     }

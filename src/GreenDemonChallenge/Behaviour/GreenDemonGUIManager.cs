@@ -70,13 +70,6 @@ public class GreenDemonGUIManager : MonoBehaviour
         var track = Instantiate(GreenDemonChallenge.TrackerPrefab, trackerScreen.transform, false);
 
         var t = track.GetOrAddComponent<GreenDemonTracker>();
-
-        var animC = AnimationCurve.EaseInOut(0, 0, 1.25f, 1);
-        
-        animC.preWrapMode = WrapMode.PingPong;
-        animC.postWrapMode = WrapMode.PingPong;
-
-        t.m_pulseTintCurve = animC;
         
         t.Demon = greenDemon;
     }

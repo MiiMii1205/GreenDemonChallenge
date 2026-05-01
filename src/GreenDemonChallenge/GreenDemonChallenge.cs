@@ -21,16 +21,18 @@ using UnityEngine;
 
 using Zorro.Core.CLI;
 using pworld.Scripts.Extensions;
-
+using UnityEngine.UI;
 
 
 namespace GreenDemonChallenge;
 
 [BepInAutoPlugin]
+[BepInDependency(SoftDependencyFix.Plugin.Id)]
 [BepInDependency(CorePlugin.Id)]
 [BepInDependency("com.snosz.photoncustompropsutils")]
 [BepInDependency("legocool.LuckyBlocks", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.github.MiiMii1205.UnnamedProducts", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.github.MiiMii1205.TimeTheme", BepInDependency.DependencyFlags.SoftDependency)]
 public partial class GreenDemonChallenge : BaseUnityPlugin
 {
     public static GameObject GreenDemonPrefab { get; private set; } = null!;
@@ -137,7 +139,6 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         
         BiomeConfig = new Dictionary<Biome.BiomeType, ConfigEntry<bool>>();
         RoomBiomeConfig = new Dictionary<Biome.BiomeType, bool>();
-
         
         foreach (var enumValue in typeof(Biome.BiomeType).GetEnumValues())
         {
@@ -354,6 +355,21 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 IceCloudPrefab);
             NetworkPrefabManager.TryRegisterNetworkPrefab(FireCloudPrefab.name,
                 FireCloudPrefab);
+
+            var t = TrackerPrefab.GetOrAddComponent<GreenDemonTracker>();
+
+            var animC = AnimationCurve.EaseInOut(0, 0, 1.25f, 1);
+
+            animC.preWrapMode = WrapMode.PingPong;
+            animC.postWrapMode = WrapMode.PingPong;
+
+            t.m_pulseTintCurve = animC;
+            
+            t.m_group = t.GetComponent<CanvasGroup>();
+            t.m_rotatorTransform = t.transform.Find("DemonArrowRotator").GetComponent<RectTransform>();
+            t.m_arrowImgae = t.m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
+            t.m_demonTransform = t.transform.Find("DemonImage").GetComponent<RectTransform>();
+            t.m_demonImage = t.m_demonTransform.GetComponent<RawImage>();
             
             bundle.Mod.RegisterContent();
             
@@ -443,6 +459,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         if (LuckyBlocksCompatibilityHandler.Enabled)
         {
             LuckyBlocksCompatibilityHandler.PatchLuckyBlocks(harmony);
+        }
+        if (TimeThemeCompatibilityHandler.Enabled)
+        {
+            TimeThemeCompatibilityHandler.Init();
         }
         
         Log.LogInfo($"Plugin {Name} is loaded!");

@@ -10,7 +10,6 @@
 
 - Slight tracker optimisations
 - Fixed soft dependencies
-- Fixed some null refs issues when updating ui colors
 
 ## [1.0.3] - 2026-04-29
 

@@ -14,7 +14,7 @@ public static class LuckyBlocksPatcher
         {
             __runOriginal = false;
             // Congratulations
-            GreenDemonHandler.Instance.SpawnGreenDemon(coll.GetContact(0).point);
+            GreenDemonHandler.Instance.SpawnGreenDemon(lb.transform.position);
         } 
     }
 }

@@ -1,15 +1,6 @@
-﻿using System;
-using System.Runtime.CompilerServices;
-using GreenDemonChallenge.Behaviour;
+﻿using System.Runtime.CompilerServices;
 using GreenDemonChallenge.Compatibility.Patchers;
 using HarmonyLib;
-using Photon.Pun;
-using UnityEngine;
-using UnnamedProducts;
-using UnnamedProducts.Behaviours;
-using UnnamedProducts.Behaviours.Item.GarbageBag;
-using Zorro.Core;
-using Zorro.Core.Serizalization;
 
 namespace GreenDemonChallenge.Compatibility;
 
@@ -26,7 +17,7 @@ public static class LuckyBlocksCompatibilityHandler
                 _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(
                     LuckBlocks.Plugin.Id);
                 GreenDemonChallenge.Log.LogInfo(
-                    $"Lucky Blocks support is {((bool) _enabled ? "enabled" : "disabled")}");
+                    $"{LuckBlocks.Plugin.Name} support is {((bool) _enabled ? "enabled" : "disabled")}");
             }
 
             return (bool) _enabled;

@@ -156,7 +156,6 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 $"Enables/disables Green Demons for {biomeName}"
             );
 
-
             configEntry.SettingChanged += UpdateGreenDemonConfig;
             
             BiomeConfig.Add((Biome.BiomeType) enumValue,  configEntry );
@@ -505,7 +504,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 }
                 case GreenDemonCaughtEffects.SPAWN_LUCKY_BLOCK:
                 {
-                    if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("legocool.LuckyBlocks"))
+                    if (LuckyBlocksCompatibilityHandler.Enabled)
                     {
                         effs.Add(o);
                     }

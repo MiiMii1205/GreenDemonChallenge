@@ -5,11 +5,11 @@ using UnityEngine;
 
 namespace GreenDemonChallenge.Compatibility;
 
-public class TimeThemeCompatibilityHandler
+public static class TimeThemeCompatibilityHandler
 {
     private static bool? _enabled;
-    private static Color TrackerArrowColorDay = new (0.8742138f, 0.8567384f, 0.7615007f, 1f);
-    private static Color TrackerArrowColorNight = new (0.6509804f, 0.3764706f, 0.7529412f, 1f);
+    private static readonly Color TrackerArrowColorDay = new (0.8742138f, 0.8567384f, 0.7615007f, 1f);
+    private static readonly Color TrackerArrowColorNight = new (0.6509804f, 0.3764706f, 0.7529412f, 1f);
 
     public static bool Enabled
     {
@@ -20,7 +20,7 @@ public class TimeThemeCompatibilityHandler
                 _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(
                     TimeTheme.TimeThemePlugin.Id);
                 GreenDemonChallenge.Log.LogInfo(
-                    $"Time Theme support is {((bool) _enabled ? "enabled" : "disabled")}");
+                    $"{TimeTheme.TimeThemePlugin.Name} support is {((bool) _enabled ? "enabled" : "disabled")}");
             }
 
             return (bool) _enabled;
@@ -66,8 +66,6 @@ public class TimeThemeCompatibilityHandler
         {
             tracker.m_arrowImgae.color = arrowColor;
         }
-        
-        
     }
     
 }

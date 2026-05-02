@@ -27,7 +27,7 @@ public static class UnnamedCompatibilityHandler
                 _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(
                     UnnamedPlugin.Id);
                 GreenDemonChallenge.Log.LogInfo(
-                    $"UnnamedProducts support is {((bool) _enabled ? "enabled" : "disabled")}");
+                    $"{UnnamedPlugin.Name} support is {((bool) _enabled ? "enabled" : "disabled")}");
             }
 
             return (bool) _enabled;

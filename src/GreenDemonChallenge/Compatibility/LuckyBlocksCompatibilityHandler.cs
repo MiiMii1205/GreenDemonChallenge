@@ -15,9 +15,9 @@ public static class LuckyBlocksCompatibilityHandler
             if (_enabled == null)
             {
                 _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(
-                    LuckBlocks.Plugin.Id);
+                    "legocool.LuckyBlocks");
                 GreenDemonChallenge.Log.LogInfo(
-                    $"{LuckBlocks.Plugin.Name} support is {((bool) _enabled ? "enabled" : "disabled")}");
+                    $"LuckyBlocks support is {((bool) _enabled ? "enabled" : "disabled")}");
             }
 
             return (bool) _enabled;

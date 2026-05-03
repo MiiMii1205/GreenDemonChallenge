@@ -1,4 +1,5 @@
-﻿using GreenDemonChallenge.Behaviour;
+﻿using System.Runtime.CompilerServices;
+using GreenDemonChallenge.Behaviour;
 using HarmonyLib;
 using UnityEngine;
 
@@ -8,6 +9,7 @@ public static class LuckyBlocksPatcher
 {
     [HarmonyPatch(typeof(Outcomes), nameof(Outcomes.TriggerRandom))]
     [HarmonyPrefix]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void TriggerRandomPostfix(LuckyBreakable lb, Collision coll, ref bool __runOriginal)
     {
         if (Random.value < 0.01f)

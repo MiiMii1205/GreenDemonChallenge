@@ -710,9 +710,9 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     public static ConfigEntry<GreenDemonModes> GreenDemonMode { get; set; } = null!;
 
     [ConsoleCommand]
-    public static void SpawnGreenDemon()
+    public static void SpawnGreenDemon(int nb = 1)
     {
-        GreenDemonHandler.Instance.SpawnGreenDemon(1);
+        GreenDemonHandler.Instance.SpawnGreenDemon(nb);
     }
     [ConsoleCommand]
     public static void DespawnGreenDemons()

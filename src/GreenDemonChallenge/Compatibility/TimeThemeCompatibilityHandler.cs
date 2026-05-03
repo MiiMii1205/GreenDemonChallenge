@@ -18,9 +18,9 @@ public static class TimeThemeCompatibilityHandler
             if (_enabled == null)
             {
                 _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(
-                    TimeTheme.TimeThemePlugin.Id);
+                    "com.github.MiiMii1205.TimeTheme");
                 GreenDemonChallenge.Log.LogInfo(
-                    $"{TimeTheme.TimeThemePlugin.Name} support is {((bool) _enabled ? "enabled" : "disabled")}");
+                    $"TimeTheme support is {((bool) _enabled ? "enabled" : "disabled")}");
             }
 
             return (bool) _enabled;

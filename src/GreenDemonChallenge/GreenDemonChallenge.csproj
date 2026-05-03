@@ -4,16 +4,16 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>com.github.MiiMii1205.GreenDemonChallenge</AssemblyName>
         <AssemblyTitle>GreenDemonChallenge</AssemblyTitle>
-        <Version>1.1.0</Version>
+        <Version>1.1.2</Version>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Update="Hamunii.BepInEx.AutoPlugin" Version="*"/>
+        <PackageReference Include="PEAKModding-SoftDependencyFix" Version="*" Private="False"/>
         <PackageReference Include="Snosz-PhotonCustomPropsUtils" Version="1.1.0" Private="False"/>
         <PackageReference Include="PEAKModding.PEAKLib.Core" Version="*"/>
         <PackageReference Include="OracleTeam-UnnamedProducts" Version="1.2.3" Private="False"/>
         <PackageReference Include="legocool-Lucky_Blocks" Version="*" Private="False"/>
-        <PackageReference Include="PEAKModding-SoftDependencyFix" Version="*" Private="False"/>
         <PackageReference Include="OracleTeam-TimeTheme" Version="*" Private="False"/>
     </ItemGroup>
 

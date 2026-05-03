@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.2] - 2026-05-03
+
+### Changed ###
+
+- Fixed soft dependencies (again)
+- Fixed a physics bug that can make demons sticks to each other.
+
+## [1.1.1] - 2026-05-02
+
+### Changed ###
+
+- Fixed Lucky Blocks compatibility when spawning demons
+
 ## [1.1.0] - 2026-05-01
 
 ### Added ###

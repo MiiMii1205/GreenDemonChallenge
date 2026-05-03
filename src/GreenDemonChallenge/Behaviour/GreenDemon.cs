@@ -2,10 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using GreenDemonChallenge.Compatibility;
 using GreenDemonChallenge.Data;
 using Peak.Afflictions;
+using Peak.Math;
 using Photon.Pun;
 using pworld.Scripts;
 using pworld.Scripts.Extensions;
@@ -14,6 +16,8 @@ using UnityEngine;
 using UnityEngine.Diagnostics;
 using Zorro.Core;
 using Zorro.Core.Serizalization;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace GreenDemonChallenge.Behaviour;
 
@@ -226,13 +230,37 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     {
         if (rig)
         {
-            if (vel > 4.0f && !collision.collider.gameObject.IsInLayer(m_characterLayerMask))
+            if (vel > 4.0f && !collision.gameObject.IsInLayer(m_characterLayerMask))
             {
-                view.RPC(nameof(RPC_PlayImpactSFX), RpcTarget.All, collision.contacts[0].point);
+                view.RPC(nameof(RPC_PlayImpactSFX), RpcTarget.All, Center);
             }
 
             vel = 0;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Vector3 CalculateCollisionForce(Collision col)
+    {
+        var tot = col.impulse.normalized;
+        
+        if (col.contactCount > 0)
+        {
+            var normals = Vector3.zero;
+
+            foreach (var contact in col.contacts)
+            {
+                normals += contact.normal;
+            }
+
+            tot += Vector3.Scale(Vector3.Lerp(tot, normals.normalized, 0.65f).normalized, CalcMoveSpeed());
+        } else
+        {
+            tot = Vector3.Scale(tot, CalcMoveSpeed());
+        }
+        
+        tot += Vector3.Scale((TargetPosition - Center).normalized, -CalcMoveSpeed()) * Time.fixedDeltaTime;
+        return tot ;
     }
 
     private void OnCollisionEnter(Collision col)
@@ -245,11 +273,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
         else
         {
-            rig.AddForce(
-                (Vector3.Scale(col.impulse.normalized, CalcMoveSpeed()) + (Vector3.Scale(
-                    (TargetPosition - Center).normalized, -CalcMoveSpeed() * 0.5f)) * Time.fixedDeltaTime),
-                ForceMode.Acceleration);
-
+            rig.AddForce(CalculateCollisionForce(col),  ForceMode.Acceleration);
+            
             if (view.IsMine)
             {
                 PlayImpactSounds(col);
@@ -262,10 +287,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         // No need to check for collisions here since it's expensive and the Update will eventually catch them.
         if (!col.gameObject.IsInLayer(m_characterLayerMask))
         {
-            rig.AddForce(
-                (Vector3.Scale(col.impulse.normalized, CalcMoveSpeed()) + (Vector3.Scale(
-                    (TargetPosition - Center).normalized, -CalcMoveSpeed())) * Time.fixedDeltaTime),
-                ForceMode.Acceleration);
+            rig.AddForce(CalculateCollisionForce(col), ForceMode.Acceleration);
 
             if (view.IsMine)
             {

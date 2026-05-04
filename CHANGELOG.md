@@ -2,6 +2,12 @@
 
 ## [1.1.2] - 2026-05-03
 
+### Added ###
+
+- Added a small flocking behavior to Green Demons when there are more than 1
+
+## [1.1.2] - 2026-05-03
+
 ### Changed ###
 
 - Fixed soft dependencies (again)

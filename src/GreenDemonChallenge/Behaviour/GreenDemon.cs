@@ -123,7 +123,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         yield return new WaitUntil(() => !animator.IsPlaying("GreenDemonSpawn"));
 
         // Wait another delay before starting the chase
-        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay);
+        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay + ((AllDemons.Count - 1) *
+            (GreenDemonChallenge
+                .RoomGreenDemonDelay / 2f)));
 
         m_isSpawning = false;
 
@@ -168,18 +170,53 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 m_stopTick -= Time.fixedDeltaTime;
             }
-            else if (view.IsMine && HasTarget)
+            else if (view.IsMine)
             {
-                var movementForce = Vector3.Scale((TargetPosition - Center).normalized, CalcMoveSpeed());
+                if (HasTarget)
+                {
+                    var movementForce = Vector3.Scale((TargetPosition - Center).normalized, CalcMoveSpeed());
 
-                rig.AddForce(
-                    (movementForce *
-                     Time.fixedDeltaTime),
-                    ForceMode.Acceleration);
+                    rig.AddForce(
+                        (movementForce *
+                         Time.fixedDeltaTime),
+                        ForceMode.Acceleration);
 
-                m_movement = movementForce.normalized;
+                    m_movement = movementForce.normalized;
 
-                CheckForCaughtPlayers();
+                    CheckForCaughtPlayers();
+                }
+
+                var distanceToTarget = (TargetPosition - Center);
+                
+                foreach (var gd in m_detector.m_demons.Values)
+                {
+                    if (!gd)
+                    {
+                        continue;
+                    }
+
+                    // If we're really close to this other demon, let's back off 
+                    var distanceToOther = (gd.Center - Center);
+                    var movementForce = Vector3.Scale(distanceToOther.normalized, -CalcMoveSpeed() *
+                        Util.RangeLerp(
+                            Util.RangeLerp(
+                                0.125f,
+                                0.75f,
+                                m_minSpeedSqrDistance,
+                                m_maxSpeedSqrDistance,
+                                Vector3.SqrMagnitude(distanceToTarget)
+                            ),
+                            0f,
+                            0,
+                            m_detector.m_detectorRadius * m_detector.m_detectorRadius,
+                            Vector3.SqrMagnitude(distanceToOther)
+                        ));
+
+                    rig.AddForce(
+                        (movementForce *
+                         Time.fixedDeltaTime),
+                        ForceMode.Acceleration);
+                }
             }
         }
     }
@@ -205,11 +242,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     ? m_kilnBaseSpeed
                     : m_baseSpeed;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Vector3 CalcMoveSpeed()
     {
-        return ( BaseSpeed + 0.ToVec()) * (Util.RangeLerp(
+        return (BaseSpeed + 0.ToVec()) * (Util.RangeLerp(
             0.5f,
             1f,
             m_minSpeedSqrDistance,
@@ -243,7 +280,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private Vector3 CalculateCollisionForce(Collision col)
     {
         var tot = col.impulse.normalized;
-        
+
         if (col.contactCount > 0)
         {
             var normals = Vector3.zero;
@@ -254,13 +291,14 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             }
 
             tot += Vector3.Scale(Vector3.Lerp(tot, normals.normalized, 0.65f).normalized, CalcMoveSpeed());
-        } else
+        }
+        else
         {
             tot = Vector3.Scale(tot, CalcMoveSpeed());
         }
-        
+
         tot += Vector3.Scale((TargetPosition - Center).normalized, -CalcMoveSpeed()) * Time.fixedDeltaTime;
-        return tot ;
+        return tot;
     }
 
     private void OnCollisionEnter(Collision col)
@@ -273,8 +311,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
         else
         {
-            rig.AddForce(CalculateCollisionForce(col),  ForceMode.Acceleration);
-            
+            rig.AddForce(CalculateCollisionForce(col), ForceMode.Acceleration);
+
             if (view.IsMine)
             {
                 PlayImpactSounds(col);
@@ -1027,7 +1065,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 if (UnnamedCompatibilityHandler.Enabled)
                 {
-                    GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_ThrowFireball), RpcTarget.MasterClient, character.view.ViewID);
+                    GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_ThrowFireball),
+                        RpcTarget.MasterClient, character.view.ViewID);
                 }
                 else
                 {
@@ -1050,7 +1089,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
             case GreenDemonCaughtEffects.SLIP:
             {
-                var peel = FindAnyObjectByType<BananaPeel>()?.gameObject ?? PhotonNetwork.InstantiateItem("Berrynana Peel Pink Variant", character.Head,
+                var peel = FindAnyObjectByType<BananaPeel>()?.gameObject ?? PhotonNetwork.InstantiateItem(
+                    "Berrynana Peel Pink Variant", character.Head,
                     Quaternion.identity);
 
                 peel.GetComponent<PhotonView>().RPC(nameof(BananaPeel.RPCA_TriggerBanana), RpcTarget.All,
@@ -1346,7 +1386,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     {
         m_stopTick = time;
     }
-    
+
     public GameObject? m_vfxPrefab;
     public GameObject? m_poofVfxPrefab;
     private Vector3 m_movement = Vector3.forward;
@@ -1355,6 +1395,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private Vector3 m_baseSpeed;
     private Vector3 m_kilnBaseSpeed;
     private float m_roomSpeedMultiplier;
+    public GreenDemonDetector m_detector = null!;
 
     private IEnumerator Shrink()
     {

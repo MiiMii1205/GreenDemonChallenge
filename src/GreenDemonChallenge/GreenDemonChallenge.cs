@@ -257,6 +257,21 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             gdc.mainRenderer = GreenDemonPrefab.GetComponentInChildren<Renderer>();
 
             gdc.m_demonTransform = gdc.mainRenderer.transform.parent;
+
+            var trigger = new GameObject("GreenDemonTrigger");
+
+            var dett = trigger.AddComponent<GreenDemonDetector>();
+            
+            var detShp = trigger.AddComponent<SphereCollider>();
+
+            gdc.m_detector = dett;
+
+            detShp.isTrigger = true;
+            dett.m_detectorRadius = detShp.radius = 100f;
+            
+            trigger.transform.SetParent(gdc.mainRenderer.transform, false);
+            trigger.transform.localPosition = 0.ToVec();
+            trigger.transform.localRotation = Quaternion.identity;
             
             if (ItemDatabase.TryGetItem(158, out var shrb) && ItemDatabase.TryGetItem(13, out var bingb))
             {

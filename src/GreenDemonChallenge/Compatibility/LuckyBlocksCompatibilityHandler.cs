@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using GreenDemonChallenge.Compatibility.Patchers;
+using GreenDemonChallenge.Behaviour;
 using HarmonyLib;
+using UnityEngine;
 
 namespace GreenDemonChallenge.Compatibility;
 
@@ -27,7 +28,12 @@ public static class LuckyBlocksCompatibilityHandler
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void PatchLuckyBlocks(Harmony harmony)
     {
-        harmony.PatchAll(typeof(LuckyBlocksPatcher));
+        Outcomes.AddOutcome(SpawnDemon, 1);
+    }
+
+    public static void SpawnDemon(LuckyBreakable lb, Collision coll)
+    {
+        GreenDemonHandler.Instance.SpawnGreenDemon(lb.transform.position);
     }
     
 }

@@ -19,7 +19,7 @@ public class GreenDemonTracker : UIBehaviour
     private RectTransform m_rectTransform = null!;
 
     internal RectTransform m_rotatorTransform = null!;
-    public Image m_arrowImgae = null!;
+    public Image m_arrowImage = null!;
     internal RectTransform m_demonTransform = null!;
 
     internal RawImage m_demonImage = null!;
@@ -212,7 +212,7 @@ public class GreenDemonTracker : UIBehaviour
         m_group ??= GetComponent<CanvasGroup>();
 
         m_rotatorTransform ??= transform.Find("DemonArrowRotator").GetComponent<RectTransform>();
-        m_arrowImgae ??= m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
+        m_arrowImage ??= m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
         
         m_demonTransform ??= transform.Find("DemonImage").GetComponent<RectTransform>();
         m_demonImage ??= m_demonTransform.GetComponent<RawImage>();

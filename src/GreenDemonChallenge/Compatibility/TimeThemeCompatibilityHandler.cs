@@ -33,6 +33,7 @@ public static class TimeThemeCompatibilityHandler
         TimeTheme.TimeThemePlugin.OnThemeChanged += UpdateAllTrackers;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     private static void UpdateAllTrackers(bool isDay)
     {
         var arrowColor = isDay ? TrackerArrowColorDay : TrackerArrowColorNight;
@@ -43,11 +44,11 @@ public static class TimeThemeCompatibilityHandler
             
             if (track.m_group.alpha > 0)
             {
-                track.m_arrowImgae.DOColor(arrowColor, 0.25f);
+                track.m_arrowImage.DOColor(arrowColor, 0.25f);
             }
             else
             {
-                track.m_arrowImgae.color = arrowColor;
+                track.m_arrowImage.color = arrowColor;
             }
             
         }
@@ -60,11 +61,11 @@ public static class TimeThemeCompatibilityHandler
         
         if (tracker.m_group.alpha > 0)
         {
-            tracker.m_arrowImgae.DOColor(arrowColor, 0.25f);
+            tracker.m_arrowImage.DOColor(arrowColor, 0.25f);
         }
         else
         {
-            tracker.m_arrowImgae.color = arrowColor;
+            tracker.m_arrowImage.color = arrowColor;
         }
     }
     

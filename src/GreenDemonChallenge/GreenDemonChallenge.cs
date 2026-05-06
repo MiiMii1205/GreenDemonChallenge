@@ -18,7 +18,6 @@ using Photon.Pun;
 using PhotonCustomPropsUtils;
 using TMPro;
 using UnityEngine;
-
 using Zorro.Core.CLI;
 using pworld.Scripts.Extensions;
 using UnityEngine.UI;
@@ -35,27 +34,130 @@ namespace GreenDemonChallenge;
 [BepInDependency("com.github.MiiMii1205.TimeTheme", BepInDependency.DependencyFlags.SoftDependency)]
 public partial class GreenDemonChallenge : BaseUnityPlugin
 {
-    public static GameObject GreenDemonPrefab { get; private set; } = null!;
-    internal static ManualLogSource Log { get; private set; } = null!;
-    public static PhotonScopedManager? Manager { get; private set; }
-    public static ConfigEntry<GreenDemonCaughtEffects> GreenDemonCaughtEffect { get; private set; } = null!;
-    public static ConfigEntry<GreenDemonTrackerSettings> GreenDemonTrackerSetting { get; private set; } = null!;
-    
-    public static ConfigEntry<float> GreenDemonVolume { get; private set; } = null!;
+    public static GameObject GreenDemonPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    internal static ManualLogSource Log
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static PhotonScopedManager? Manager
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    }
+
+    public static ConfigEntry<GreenDemonCaughtEffects> GreenDemonCaughtEffect
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static ConfigEntry<GreenDemonTrackerSettings> GreenDemonTrackerSetting
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static ConfigEntry<float> GreenDemonVolume
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
 
     public static GreenDemonCaughtEffects RoomGreenDemonCaughtEffect = GreenDemonCaughtEffects.KILL;
-    public static Dictionary<Biome.BiomeType, ConfigEntry<bool>> BiomeConfig { get; private set; } = null!;
-    
+
+    public static Dictionary<Biome.BiomeType, ConfigEntry<bool>> BiomeConfig
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
     public static Dictionary<Biome.BiomeType, bool> RoomBiomeConfig = null!;
-    public static GameObject TriggerEntryPrefab { get; set; } = null!;
-    public static GameObject TriggerExitPrefab { get; set; } = null!;
-    public static GameObject TheDemonIsHerePrefab { get; set; } = null!;
-    public static GameObject TrackerPrefab { get; set; } = null!;
-    public static GameObject PoisonCloudPrefab { get; set; } = null!;
-    public static GameObject SporeCloudPrefab { get; set; } = null!;
-    public static GameObject IceCloudPrefab { get; set; } = null!;
-    public static GameObject FireCloudPrefab { get; set; } = null!;
-    
+
+    public static GameObject TriggerEntryPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject TriggerExitPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject TheDemonIsHerePrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject TrackerPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject PoisonCloudPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject SporeCloudPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject IceCloudPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static GameObject FireCloudPrefab
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
     private static TMP_FontAsset? _darumaFontAsset;
 
     public static TMP_FontAsset DarumaDropOne
@@ -75,7 +177,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             return _darumaFontAsset!;
         }
     }
-    
+
     private static Material? _darumaShadowMaterial;
 
     public static Material DarumaDropOneFogShadowMaterial
@@ -107,15 +209,16 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
 
         var genConfigDescr = new ConfigDescription("What happens to players caught by Green Demons",
             new AcceptableEnumList<GreenDemonCaughtEffects>(GetValidEffects()));
-        
+
         GreenDemonCaughtEffect = Config.Bind("General", "Green Demon Caught Effect", GreenDemonCaughtEffects.KILL,
             genConfigDescr);
-        
-        GreenDemonVolume = Config.Bind("Gameplay", "Green Demon Volume", 1f, new ConfigDescription("The volume of the Green Demon Music", new AcceptableValueRange<float>(0f, 2f)));
+
+        GreenDemonVolume = Config.Bind("Gameplay", "Green Demon Volume", 1f,
+            new ConfigDescription("The volume of the Green Demon Music", new AcceptableValueRange<float>(0f, 2f)));
 
         GreenDemonTrackerSetting = Config.Bind("Gameplay", "Green Demon Tracker Mode",
             GreenDemonTrackerSettings.OFFSCREEN, "When on-screen trackers should appear.");
-            
+
         GreenDemonAmount = Config.Bind("General", "Green Demon amount", 1,
             new ConfigDescription("The amount of Green Demons that spawns in.", new AcceptableValueRange<int>(1, 10)));
 
@@ -128,18 +231,23 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         GreenDemonMode = Config.Bind("General", "Green Demon Mode", GreenDemonModes.NORMAL,
             "The current Green Demon Challenge mode. 'NORMAL' despawns all active demons after starting a campfire, 'HARD' stops them momentarily but max out demon count to \"Green Demon amount\", 'VERY_HARD' is 'HARD' but demon keeps spawning .");
 
+        GreenDemonRandomType = Config.Bind("General", "Type of Green Demon Random Effects", GreenDemonRandomTypes.STANDARD,
+            "Restricts the kind of effects that can happen when the Caught Effect is RANDOM. 'CASUAL' removes the harsher effects (like 'KILL', 'POOR_BOY'), 'HARDCORE' removes the softer effects (like 'SLIP' or 'BEES'), and 'STANDARD' keeps every effects.");
+
+        
         GreenDemonCaughtEffect.SettingChanged += UpdateGreenDemonConfig;
         GreenDemonAmount.SettingChanged += UpdateGreenDemonConfig;
         GreenDemonSpeed.SettingChanged += UpdateGreenDemonConfig;
         GreenDemonMode.SettingChanged += UpdateGreenDemonConfig;
+        GreenDemonRandomType.SettingChanged += UpdateGreenDemonConfig;
 
         GreenDemonVolume.SettingChanged += UpdateDemonVolumes;
-        
+
         GreenDemonTrackerSetting.SettingChanged += UpdateTrackersSettings;
-        
+
         BiomeConfig = new Dictionary<Biome.BiomeType, ConfigEntry<bool>>();
         RoomBiomeConfig = new Dictionary<Biome.BiomeType, bool>();
-        
+
         foreach (var enumValue in typeof(Biome.BiomeType).GetEnumValues())
         {
             if ((int) enumValue > 7)
@@ -147,7 +255,8 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 continue;
             }
 
-            var biomeName = typeof(Biome.BiomeType).GetEnumName((Biome.BiomeType) enumValue)?.Replace("Volcano", "Caldera");
+            var biomeName = typeof(Biome.BiomeType).GetEnumName((Biome.BiomeType) enumValue)
+                ?.Replace("Volcano", "Caldera");
 
             var configEntry = Config.Bind(
                 "Biomes",
@@ -157,22 +266,22 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             );
 
             configEntry.SettingChanged += UpdateGreenDemonConfig;
-            
-            BiomeConfig.Add((Biome.BiomeType) enumValue,  configEntry );
-            
+
+            BiomeConfig.Add((Biome.BiomeType) enumValue, configEntry);
+
             RoomBiomeConfig.Add((Biome.BiomeType) enumValue, configEntry.Value);
         }
 
         EnableGreenDemonInTheKiln = Config.Bind("Biomes", "Enable The Kiln", true,
             "Enables/Disables the Green Demon for The Kiln");
-        
+
         // StopGreenDemonInTomb =
         //     Config.Bind("Biomes", "Stop in the Tomb", true, "Stops the Green Demon while in the Tomb");
 
         EnableGreenDemonInTheKiln.SettingChanged += UpdateGreenDemonConfig;
         // StopGreenDemonInTomb.SettingChanged += UpdateGreenDemonConfig;
-        
-        
+
+
         GreenDemonDelay.SettingChanged += UpdateGreenDemonConfig;
 
         RoomGreenDemonAmount = GreenDemonAmount.Value;
@@ -181,9 +290,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         RoomEnableGreenDemonInTheKiln = EnableGreenDemonInTheKiln.Value;
         // RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
         RoomGreenDemonDelay = GreenDemonDelay.Value;
-        
+
         RoomGreenDemonMode = GreenDemonMode.Value;
-        
+        RoomGreenDemonRandomType = GreenDemonRandomType.Value;
+
         this.LoadBundleAndContentsWithName("greendemon.peakbundle", bundle =>
         {
             GreenDemonPrefab = bundle.LoadAsset<GameObject>("GreenDemon.prefab");
@@ -194,7 +304,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             TrackerPrefab = bundle.LoadAsset<GameObject>("GreenDemonTracker.prefab");
 
             TrackerPrefab.GetComponentInChildren<CanvasGroup>(true).alpha = 0;
-            
+
             TriggerEntryPrefab.GetOrAddComponent<GreenDemonTombTrigger>();
             TriggerExitPrefab.GetOrAddComponent<GreenDemonTombTrigger>();
 
@@ -205,10 +315,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
 
             var consumeVFX = bundle.LoadAsset<GameObject>("GreenDemonConsumeVFX.prefab");
             var poofVFX = bundle.LoadAsset<GameObject>("GreenDemonPoofVFX.prefab");
-            
+
             ShaderExtensions.ReplaceShaders(consumeVFX);
             ShaderExtensions.ReplaceShaders(poofVFX);
-            
+
             ReplaceShaders([
                 "W/Peak_Standard",
                 "W/Character",
@@ -227,7 +337,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 "GD/FireParticle",
                 "SmokeParticle"
             ], consumeVFX);
-            
+
             ReplaceShaders([
                 "W/Peak_Standard",
                 "W/Character",
@@ -246,13 +356,13 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 "GD/FireParticle",
                 "SmokeParticle"
             ], poofVFX);
-            
+
             var cdae = consumeVFX.GetOrAddComponent<DestroyAfterEmit>();
             cdae.m_particle = consumeVFX.GetComponent<ParticleSystem>();
-            
+
             var pdae = poofVFX.GetOrAddComponent<DestroyAfterEmit>();
             pdae.m_particle = poofVFX.GetComponent<ParticleSystem>();
-            
+
             var gdc = GreenDemonPrefab.GetOrAddComponent<GreenDemon>();
             gdc.mainRenderer = GreenDemonPrefab.GetComponentInChildren<Renderer>();
 
@@ -261,18 +371,18 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             var trigger = new GameObject("GreenDemonTrigger");
 
             var dett = trigger.AddComponent<GreenDemonDetector>();
-            
+
             var detShp = trigger.AddComponent<SphereCollider>();
 
             gdc.m_detector = dett;
 
             detShp.isTrigger = true;
             dett.m_detectorRadius = detShp.radius = 100f;
-            
+
             trigger.transform.SetParent(gdc.mainRenderer.transform, false);
             trigger.transform.localPosition = 0.ToVec();
             trigger.transform.localRotation = Quaternion.identity;
-            
+
             if (ItemDatabase.TryGetItem(158, out var shrb) && ItemDatabase.TryGetItem(13, out var bingb))
             {
                 var shroomImpt = shrb.GetComponent<ItemImpactSFX>();
@@ -288,11 +398,11 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                     }
                 }
             }
-            
+
 
             var sfxPlayOneShot = GreenDemonPrefab.GetComponent<SFX_PlayOneShot>();
             var sfxiLists = sfxPlayOneShot.sfxs;
-            
+
             foreach (var sfx in sfxiLists)
             {
                 if (sfx.name == "SFXI Heal Hunger Stamina")
@@ -304,14 +414,14 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             gdc.shrunkSfx = gdc.shrunkSfx.AddToArray(bundle.LoadAsset<SFX_Instance>("SFXI Demon_Despawn.asset"));
             gdc.consumedSfx = gdc.consumedSfx.AddToArray(bundle.LoadAsset<SFX_Instance>("SFXI Demon_Consume.asset"))
                 .AddToArray(bundle.LoadAsset<SFX_Instance>("SFXI Demon_Consume_Jingle.asset"));
-            
+
             gdc.m_vfxPrefab = consumeVFX;
             gdc.m_poofVfxPrefab = poofVFX;
-            
+
             Destroy(sfxPlayOneShot);
-            
+
             gdc.source = GreenDemonPrefab.GetComponent<AudioSource>();
-            
+
             ReplaceShaders([
                 "W/Peak_Standard",
                 "W/Character",
@@ -330,8 +440,8 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 "GD/FireParticle",
                 "W/Vine"
             ], GreenDemonPrefab);
-            
-            
+
+
             ReplaceShaders([
                 "Scouts/UI",
                 "TextMeshPro/Distance Field"
@@ -342,23 +452,23 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 "TextMeshPro/Distance Field"
             ], TrackerPrefab);
 
-            
+
             ShaderExtensions.ReplaceShaders(TheDemonIsHerePrefab);
             ShaderExtensions.ReplaceShaders(TrackerPrefab);
-            
+
             ShaderExtensions.ReplaceShaders(GreenDemonPrefab);
             ShaderExtensions.ReplaceShaders(PoisonCloudPrefab);
-            
+
             ShaderExtensions.ReplaceShaders(SporeCloudPrefab);
             ShaderExtensions.ReplaceShaders(IceCloudPrefab);
             ShaderExtensions.ReplaceShaders(FireCloudPrefab);
-            
+
             foreach (var tmpText in TheDemonIsHerePrefab.GetComponentsInChildren<TMP_Text>())
             {
                 tmpText.font = DarumaDropOne;
                 tmpText.fontMaterial = DarumaDropOneFogShadowMaterial;
             }
-            
+
             NetworkPrefabManager.TryRegisterNetworkPrefab(GreenDemonPrefab.name,
                 GreenDemonPrefab);
             NetworkPrefabManager.TryRegisterNetworkPrefab(PoisonCloudPrefab.name,
@@ -378,15 +488,15 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             animC.postWrapMode = WrapMode.PingPong;
 
             t.m_pulseTintCurve = animC;
-            
+
             t.m_group = t.GetComponent<CanvasGroup>();
             t.m_rotatorTransform = t.transform.Find("DemonArrowRotator").GetComponent<RectTransform>();
-            t.m_arrowImgae = t.m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
+            t.m_arrowImage = t.m_rotatorTransform.Find("Arrow").Find("Image").GetComponent<Image>();
             t.m_demonTransform = t.transform.Find("DemonImage").GetComponent<RectTransform>();
             t.m_demonImage = t.m_demonTransform.GetComponent<RawImage>();
-            
+
             bundle.Mod.RegisterContent();
-            
+
             Log.LogInfo("Green Demon bundle is loaded!");
         });
 
@@ -408,13 +518,22 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 RoomGreenDemonAmount = v;
             }
         });
-        
+
         Manager.RegisterRoomProperty<bool>(nameof(RoomEnableGreenDemonInTheKiln), RoomEventType.All, v =>
         {
             if (!PhotonNetwork.IsMasterClient)
             {
                 Log.LogInfo($"Received {v} as new {nameof(RoomEnableGreenDemonInTheKiln)}!");
                 RoomEnableGreenDemonInTheKiln = v;
+            }
+        });
+        
+        Manager.RegisterRoomProperty<int>(nameof(RoomGreenDemonRandomType), RoomEventType.All, v =>
+        {
+            if (!PhotonNetwork.IsMasterClient)
+            {
+                Log.LogInfo($"Received {v} as new {nameof(RoomGreenDemonRandomType)}!");
+                RoomGreenDemonRandomType = (GreenDemonRandomTypes) v;
             }
         });
         //
@@ -435,7 +554,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 RoomGreenDemonCaughtEffect = (GreenDemonCaughtEffects) v;
             }
         });
-        
+
         Manager.RegisterRoomProperty<float>(nameof(RoomGreenDemonDelay), RoomEventType.All, v =>
         {
             if (!PhotonNetwork.IsMasterClient)
@@ -444,11 +563,11 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                 RoomGreenDemonDelay = v;
             }
         });
-        
+
         foreach (var keyValuePair in RoomBiomeConfig)
         {
             var biomeSettingName = $"{keyValuePair.Key}_{nameof(RoomBiomeConfig)}";
-            
+
             Manager.RegisterRoomProperty<bool>(biomeSettingName,
                 RoomEventType.All,
                 v =>
@@ -461,26 +580,26 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                     }
                 });
         }
-        
+
         Manager.RegisterOnJoinedRoom(SetupGreenDemonSettings);
-        
+
         AddLocalizedTextCsv();
 
         var harmony = new Harmony(Id);
-        
+
         harmony.PatchAll(typeof(GreenDemonPatcher));
 
         if (LuckyBlocksCompatibilityHandler.Enabled)
         {
             LuckyBlocksCompatibilityHandler.PatchLuckyBlocks(harmony);
         }
+
         if (TimeThemeCompatibilityHandler.Enabled)
         {
             TimeThemeCompatibilityHandler.Init();
         }
-        
+
         Log.LogInfo($"Plugin {Name} is loaded!");
-        
     }
 
     private static void UpdateDemonVolumes(object sender, EventArgs e)
@@ -490,6 +609,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             greenDemon.RefreshVolume();
         }
     }
+
     private static void UpdateTrackersSettings(object sender, EventArgs e)
     {
         foreach (var tracker in GreenDemonTracker.AllTrackers)
@@ -498,10 +618,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         }
     }
 
-    private GreenDemonCaughtEffects[] GetValidEffects()
+    private static GreenDemonCaughtEffects[] GetValidEffects()
     {
         List<GreenDemonCaughtEffects> effs = [];
-        
+
         foreach (GreenDemonCaughtEffects o in Enum.GetValues(typeof(GreenDemonCaughtEffects)))
         {
             switch (o)
@@ -531,7 +651,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
                     break;
             }
         }
-        
+
         return effs.ToArray();
     }
 
@@ -541,7 +661,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         get => RunManager.Instance?.runStarted ?? false;
     }
 
-    private void UpdateGreenDemonConfig(object sender, EventArgs e)
+    private static void UpdateGreenDemonConfig(object sender, EventArgs e)
     {
         if (!IsRunStarted)
         {
@@ -552,14 +672,14 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             Log.LogWarning("Run has already started. Can't change the settings mid-run...");
         }
     }
-    
+
     private static void SetupGreenDemonSettings(Photon.Realtime.Player player)
     {
         if (!player.IsMasterClient)
         {
             Log.LogWarning($"{player} is NOT the host. Can't send our Settings.");
         }
-        
+
         if (PhotonNetwork.InRoom && player.IsMasterClient && Manager != null)
         {
             Log.LogInfo($"Sending our current {nameof(RoomGreenDemonSpeed)} of {GreenDemonSpeed.Value}...");
@@ -569,19 +689,21 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             Log.LogInfo($"Sending our current {nameof(RoomGreenDemonAmount)} of {GreenDemonAmount.Value}...");
             RoomGreenDemonAmount = GreenDemonAmount.Value;
             Manager.SetRoomProperty(nameof(RoomGreenDemonAmount), GreenDemonAmount.Value);
-            
-            Log.LogInfo($"Sending our current {nameof(RoomEnableGreenDemonInTheKiln)} in the kiln of {EnableGreenDemonInTheKiln.Value}...");
+
+            Log.LogInfo(
+                $"Sending our current {nameof(RoomEnableGreenDemonInTheKiln)} in the kiln of {EnableGreenDemonInTheKiln.Value}...");
             RoomEnableGreenDemonInTheKiln = EnableGreenDemonInTheKiln.Value;
             Manager.SetRoomProperty(nameof(RoomEnableGreenDemonInTheKiln), EnableGreenDemonInTheKiln.Value);
-            
+
             // Log.LogInfo($"Sending our current {nameof(RoomStopGreenDemonInTomb)} of {StopGreenDemonInTomb.Value}...");
             // RoomStopGreenDemonInTomb = StopGreenDemonInTomb.Value;
             // Manager.SetRoomProperty(nameof(RoomStopGreenDemonInTomb), StopGreenDemonInTomb.Value);
-            
-            Log.LogInfo($"Sending our current {nameof(RoomGreenDemonCaughtEffect)} of {GreenDemonCaughtEffect.Value}...");
+
+            Log.LogInfo(
+                $"Sending our current {nameof(RoomGreenDemonCaughtEffect)} of {GreenDemonCaughtEffect.Value}...");
             RoomGreenDemonCaughtEffect = GreenDemonCaughtEffect.Value;
             Manager.SetRoomProperty(nameof(RoomGreenDemonCaughtEffect), (int) GreenDemonCaughtEffect.Value);
-            
+
             Log.LogInfo($"Sending our current {nameof(RoomGreenDemonMode)} of {GreenDemonMode.Value}...");
             RoomGreenDemonMode = GreenDemonMode.Value;
             Manager.SetRoomProperty(nameof(RoomGreenDemonMode), (int) GreenDemonMode.Value);
@@ -589,6 +711,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             Log.LogInfo($"Sending our current {nameof(RoomGreenDemonDelay)} of {GreenDemonDelay.Value}...");
             RoomGreenDemonDelay = GreenDemonDelay.Value;
             Manager.SetRoomProperty(nameof(RoomGreenDemonDelay), GreenDemonDelay.Value);
+            
+            Log.LogInfo($"Sending our current {nameof(RoomGreenDemonRandomType)} of {GreenDemonRandomType.Value}...");
+            RoomGreenDemonRandomType = GreenDemonRandomType.Value;
+            Manager.SetRoomProperty(nameof(RoomGreenDemonRandomType), GreenDemonRandomType.Value);
 
             foreach (var conf in BiomeConfig)
             {
@@ -601,7 +727,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReplaceShaders(List<string> shaderNames, GameObject go)
+    private static void ReplaceShaders(List<string> shaderNames, GameObject go)
     {
         foreach (var renderer in go.GetComponentsInChildren<Renderer>())
         {
@@ -609,11 +735,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         }
     }
 
-    private void ReplaceAllShaderInRenderer(List<string> shaderNames, Renderer ren)
+    private static void ReplaceAllShaderInRenderer(List<string> shaderNames, Renderer ren)
     {
         foreach (var shaderName in shaderNames)
         {
-
             var shader = Shader.Find(shaderName);
 
             if (shader == null)
@@ -626,7 +751,6 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
 
             foreach (var mat in ren.sharedMaterials)
             {
-
                 ReplaceShader(shader, mat);
             }
 
@@ -634,9 +758,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
             {
                 ReplaceShader(shader, mat);
             }
-
         }
-
     }
 
     private void AddLocalizedTextCsv()
@@ -657,7 +779,7 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
 
             currentLine++;
 
-            List<string> valList = new List<string>(CSVReader.SplitCsvLine(line));
+            var valList = new List<string>(CSVReader.SplitCsvLine(line));
 
             var locName = valList.Deque();
 
@@ -681,12 +803,10 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ReplaceShader(Shader shader, Material mat)
     {
-        if (mat.shader.name != shader.name)
+        if (mat.shader.name == shader.name)
         {
-            return;
+            mat.shader = shader;
         }
-
-        mat.shader = shader;
     }
 
     private void OnGUI()
@@ -697,9 +817,11 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
         {
             var height = 128f + (32f) * 4f;
             GUI.Label(new Rect((Screen.width - 400f), (Screen.height - height), 400f, height),
-                GreenDemonHandler.Instance.WaitingToSpawn ? $"<color=green>[{Name} v{Version}]</color>\nProgression: {MountainProgressHandler.Instance.progressPoints[GreenDemonHandler.Instance.CurrentProgressPoint].title} \nCrow Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentCrowCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentCrowCompletion}</color> \nClimb Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentClimbCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentClimbCompletion}</color>"  : $"<color=green>[{Name} v{Version}]</color>\nProgression: {(GreenDemonHandler.Instance.HasSpawned ? "SPAWNED" :  "?")}" );
+                GreenDemonHandler.Instance.WaitingToSpawn
+                    ? $"<color=green>[{Name} v{Version}]</color>\nProgression: {MountainProgressHandler.Instance.progressPoints[GreenDemonHandler.Instance.CurrentProgressPoint].title} \nCrow Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentCrowCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentCrowCompletion}</color> \nClimb Completion: <color={(GreenDemonHandler.Instance.MeetsCurrentClimbCompletion() ? "green" : "red")}>{GreenDemonHandler.Instance.CurrentClimbCompletion}</color>"
+                    : $"<color=green>[{Name} v{Version}]</color>\nProgression: {(GreenDemonHandler.Instance.HasSpawned ? "SPAWNED" : "?")}");
         }
-        
+
 #endif
     }
 
@@ -707,49 +829,104 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     public static int RoomGreenDemonAmount = 1;
 
     public static bool RoomEnableGreenDemonInTheKiln;
+
     // public static bool RoomStopGreenDemonInTomb;
     public static float RoomGreenDemonDelay;
+    public static GreenDemonRandomTypes RoomGreenDemonRandomType;
     public static GreenDemonModes RoomGreenDemonMode;
-    
+
     private static readonly int UnderlayDilate = Shader.PropertyToID("_UnderlayDilate");
     private static readonly int UnderlayOffsetY = Shader.PropertyToID("_UnderlayOffsetY");
     private static readonly int UnderlaySoftness = Shader.PropertyToID("_UnderlaySoftness");
 
     private static readonly int UnderlayColor = Shader.PropertyToID("_UnderlayColor");
 
-    public static ConfigEntry<int> GreenDemonAmount { get; set; } = null!;
-    public static ConfigEntry<bool> EnableGreenDemonInTheKiln { get; private set; } = null!;
-    public static ConfigEntry<bool> StopGreenDemonInTomb { get; private set; } = null!;
-    public static ConfigEntry<GreenDemonSpeeds> GreenDemonSpeed { get; set; } = null!;
-    public static ConfigEntry<float> GreenDemonDelay { get; set; } = null!;
-    public static ConfigEntry<GreenDemonModes> GreenDemonMode { get; set; } = null!;
+    public static ConfigEntry<int> GreenDemonAmount
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
+
+    public static ConfigEntry<bool> EnableGreenDemonInTheKiln
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static ConfigEntry<bool> StopGreenDemonInTomb
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set;
+    } = null!;
+
+    public static ConfigEntry<GreenDemonSpeeds> GreenDemonSpeed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
+
+    public static ConfigEntry<float> GreenDemonDelay
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
+
+    public static ConfigEntry<GreenDemonModes> GreenDemonMode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
+
+    public static ConfigEntry<GreenDemonRandomTypes> GreenDemonRandomType
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
 
     [ConsoleCommand]
-    public static void SpawnGreenDemon(int nb = 1)
+    public static void SpawnGreenDemon(int? nb = 1)
     {
-        GreenDemonHandler.Instance.SpawnGreenDemon(nb);
+        GreenDemonHandler.Instance.SpawnGreenDemon(nb ?? 1);
     }
+
     [ConsoleCommand]
     public static void DespawnGreenDemons()
     {
-        GreenDemonHandler.Instance.ShrinkAllDemons();;
+        GreenDemonHandler.Instance.ShrinkAllDemons();
     }
+
     [ConsoleCommand]
     public static void SpawnIceCloud()
     {
         Instantiate(GreenDemonChallenge.IceCloudPrefab, Character.localCharacter.Center, Quaternion.identity);
     }
+
     [ConsoleCommand]
     public static void SpawnFireCloud()
     {
         Instantiate(GreenDemonChallenge.FireCloudPrefab, Character.localCharacter.Center, Quaternion.identity);
     }
+
     [ConsoleCommand]
     public static void SpawnSporeCloud()
     {
-
         Instantiate(GreenDemonChallenge.SporeCloudPrefab, Character.localCharacter.Center, Quaternion.identity);
     }
+
     [ConsoleCommand]
     public static void SpawnPoisonCloud()
     {

@@ -2,18 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using GreenDemonChallenge.Compatibility;
 using GreenDemonChallenge.Data;
 using Peak.Afflictions;
-using Peak.Math;
 using Photon.Pun;
-using pworld.Scripts;
 using pworld.Scripts.Extensions;
-using Sirenix.Utilities;
 using UnityEngine;
-using UnityEngine.Diagnostics;
 using Zorro.Core;
 using Zorro.Core.Serizalization;
 using Quaternion = UnityEngine.Quaternion;
@@ -25,8 +20,6 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 {
     public static List<GreenDemon> AllDemons = [];
     public SphereCollider collider = null!;
-
-    public Vector3 centerOfMass;
 
     public float mass = 5f;
     public Rigidbody rig = null!;
@@ -40,7 +33,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     public float m_catchRadius = 1f;
     private float m_chaseTimeout;
     private float m_chaseUpdateCooldown = 3f;
-    private LayerMask m_characterLayerMask = 1024;
+    private readonly LayerMask m_characterLayerMask = 1024;
 
     private Character m_chasingCharacter = null!;
     private float m_destroyTick;
@@ -57,7 +50,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private float m_shrinkDuration = 1.25f;
 
     private double m_timeSinceTick;
-    protected PhotonView view = null!;
+    private PhotonView view = null!;
 
     private bool m_isSpawning = true;
 
@@ -75,7 +68,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         private set;
     }
 
-    private bool ShouldSearchForAnotherTarget => !HasTarget || !m_chasingCharacter.IsLocal;
+    private bool ShouldSearchForAnotherTarget
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => !HasTarget || !m_chasingCharacter.IsLocal;
+    }
 
     private void Awake()
     {
@@ -123,7 +120,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         yield return new WaitUntil(() => !animator.IsPlaying("GreenDemonSpawn"));
 
         // Wait another delay before starting the chase
-        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay + ((AllDemons.Count - 1) *
+        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay + ((m_demonIndex) *
             (GreenDemonChallenge
                 .RoomGreenDemonDelay / 2f)));
 
@@ -174,7 +171,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 if (HasTarget)
                 {
-                    var movementForce = Vector3.Scale((TargetPosition - Center).normalized, CalcMoveSpeed());
+                    var movementForce = Vector3.Scale((TargetPosition - Center).normalized, MoveSpeed);
 
                     rig.AddForce(
                         (movementForce *
@@ -187,7 +184,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 }
 
                 var distanceToTarget = (TargetPosition - Center);
-                
+
                 foreach (var gd in m_detector.m_demons.Values)
                 {
                     if (!gd)
@@ -197,7 +194,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
                     // If we're really close to this other demon, let's back off 
                     var distanceToOther = (gd.Center - Center);
-                    var movementForce = Vector3.Scale(distanceToOther.normalized, -CalcMoveSpeed() *
+                    var movementForce = Vector3.Scale(distanceToOther.normalized, -MoveSpeed *
                         Util.RangeLerp(
                             Util.RangeLerp(
                                 0.125f,
@@ -243,16 +240,17 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     : m_baseSpeed;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Vector3 CalcMoveSpeed()
+    private Vector3 MoveSpeed
     {
-        return (BaseSpeed + 0.ToVec()) * (Util.RangeLerp(
-            0.5f,
-            1f,
-            m_minSpeedSqrDistance,
-            m_maxSpeedSqrDistance,
-            (TargetPosition - Center).sqrMagnitude
-        ) * (MovementForce * m_roomSpeedMultiplier));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get =>
+            (BaseSpeed + 0.ToVec()) * (Util.RangeLerp(
+                0.5f,
+                1f,
+                m_minSpeedSqrDistance,
+                m_maxSpeedSqrDistance,
+                (TargetPosition - Center).sqrMagnitude
+            ) * (MovementForce * m_roomSpeedMultiplier));
     }
 
     public SFX_Instance[] consumedSfx = [];
@@ -285,19 +283,19 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         {
             var normals = Vector3.zero;
 
-            foreach (var contact in col.contacts)
+            for (var i = col.contacts.Length - 1; i >= 0; i--)
             {
-                normals += contact.normal;
+                normals += col.contacts[i].normal;
             }
 
-            tot += Vector3.Scale(Vector3.Lerp(tot, normals.normalized, 0.65f).normalized, CalcMoveSpeed());
+            tot += Vector3.Scale(Vector3.Lerp(tot, normals.normalized, 0.65f).normalized, MoveSpeed);
         }
         else
         {
-            tot = Vector3.Scale(tot, CalcMoveSpeed());
+            tot = Vector3.Scale(tot, MoveSpeed);
         }
 
-        tot += Vector3.Scale((TargetPosition - Center).normalized, -CalcMoveSpeed()) * Time.fixedDeltaTime;
+        tot += Vector3.Scale((TargetPosition - Center).normalized, -MoveSpeed) * Time.fixedDeltaTime;
         return tot;
     }
 
@@ -338,7 +336,6 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     {
         rig ??= gameObject.GetOrAddComponent<Rigidbody>();
         rig.mass = mass;
-        centerOfMass = rig.centerOfMass;
         rig.interpolation = RigidbodyInterpolation.Interpolate;
         rig.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         collider ??= GetComponent<SphereCollider>();
@@ -435,6 +432,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckForCaughtPlayers()
     {
         if (m_inActiveChase && Character.localCharacter && TargetIsValid(Character.localCharacter) &&
@@ -444,10 +442,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
     }
 
-    private static int RemoveFlairFromBackpack(BackpackData backpackData, BackpackVisuals backpackVisuals)
+    private static void RemoveFlairFromBackpack(BackpackData backpackData, BackpackVisuals backpackVisuals, ref int
+        flareRemoved, ref int unnamedFlareRemoved)
     {
-        var flareRemoved = 0;
-
         for (var i = 0; i < backpackData.itemSlots.Length; i++)
         {
             if (backpackData.itemSlots[i].IsEmpty())
@@ -460,24 +457,30 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             if (UnnamedCompatibilityHandler.Enabled &&
                 UnnamedCompatibilityHandler.IsGarbageBag(backpackData.itemSlots[i].prefab))
             {
-                flareRemoved += UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(
+                UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(
                     backpackData.itemSlots[i].prefab,
-                    backpackData.itemSlots[i].data);
+                    backpackData.itemSlots[i].data, ref flareRemoved, ref unnamedFlareRemoved);
             }
             else
             {
                 if (it.TryGetComponent<Flare>(out _))
                 {
+                    if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsUnnamed(it))
+                    {
+                        unnamedFlareRemoved++;
+                    }
+                    else
+                    {
+                        flareRemoved++;
+                    }
+
                     PhotonNetwork.Destroy(it.gameObject);
-                    flareRemoved++;
 
                     backpackData.itemSlots[(byte) i].EmptyOut();
                     backpackVisuals.RefreshVisuals();
                 }
             }
         }
-
-        return flareRemoved;
     }
 
     private static int CookItemFromBackpack(BackpackData backpackData, BackpackVisuals backpackVisuals)
@@ -517,18 +520,19 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             case GreenDemonCaughtEffects.RANDOM:
             {
                 GreenDemonCaughtEffects eff;
-
+                
                 var vals =
                     (GreenDemonCaughtEffects[]) Enum.GetValues(typeof(GreenDemonCaughtEffects));
 
                 do
                 {
                     eff = vals.GetRandom();
-                } while (!IsEffectRandoValid(character, eff));
+                } while (!IsEffectRandoValid(character, eff, GreenDemonChallenge.RoomGreenDemonRandomType));
 
                 ApplyEffect(character, eff);
             }
-                break;
+                break; 
+            
             case GreenDemonCaughtEffects.KILL:
                 // Congratulations!
                 character.DieInstantly();
@@ -573,7 +577,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
             case GreenDemonCaughtEffects.FLING:
                 // Bye!
-                character.AddForce(((Center - character.Center).normalized * 125f) / Time.fixedDeltaTime);
+                // Just make sure we fling the player OFF the mountain
+                character.AddForce(((Vector3.back + (Center - character.Center).normalized).normalized * 125f) /
+                                   Time.fixedDeltaTime);
                 break;
 
             case GreenDemonCaughtEffects.FALL:
@@ -598,65 +604,11 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             case GreenDemonCaughtEffects.POOR_BOY:
             {
                 var itemRemoved = 0;
+
                 // Poor boys gets no items. 
-                var currentItem = character.data.currentItem;
-
-                if (IsHoldingSomethingTemporary(character) && currentItem)
-                {
-                    character.player.EmptySlot(character.refs.items.currentSelectedSlot);
-                    PhotonNetwork.Destroy(character.data.currentItem.gameObject);
-                    itemRemoved++;
-                }
-
-                // Backpack slot
-                if (!character.player.backpackSlot.IsEmpty())
-                {
-                    if (IsHoldingBackpack(character) && currentItem)
-                    {
-                        // Currently holding the backpack
-                        if (currentItem is Backpack b &&
-                            b.data.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bd))
-                        {
-                            itemRemoved += bd.FilledSlotCount();
-                            itemRemoved++;
-                            character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
-                            PhotonNetwork.Destroy(character.data.currentItem.gameObject);
-                        }
-                    }
-                    else if (character.player.backpackSlot.hasBackpack)
-                    {
-                        // Currenty wearking the backpack
-                        if (character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
-                                out BackpackData bd))
-                        {
-                            itemRemoved += bd.FilledSlotCount();
-                            character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
-                            itemRemoved++;
-                        }
-                    }
-                }
-
-                for (var index = character.player.itemSlots.Length - 1; index >= 0; --index)
-                {
-                    var s = character.player.GetItemSlot((byte) index);
-
-                    if (s.IsEmpty())
-                    {
-                        continue;
-                    }
-
-                    if (IsHoldingOutSlot(character, s) && currentItem)
-                    {
-                        character.player.EmptySlot(character.refs.items.currentSelectedSlot);
-                        PhotonNetwork.Destroy(character.data.currentItem.gameObject);
-                        itemRemoved++;
-                    }
-                    else
-                    {
-                        character.player.EmptySlot(Optionable<byte>.Some((byte) index));
-                        itemRemoved++;
-                    }
-                }
+                RemoveTemporaryItem(character, ref itemRemoved);
+                RemoveBackpack(character, ref itemRemoved);
+                RemoveWholeInventory(character, ref itemRemoved);
 
                 character.view.RPC(nameof(Player.SyncInventoryRPC), RpcTarget.Others,
                     IBinarySerializable.ToManagedArray(
@@ -671,221 +623,34 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             case GreenDemonCaughtEffects.NO_FLARE:
             {
                 var flareRemoved = 0;
+                var unnamedFlareRemoved = 0;
+
                 // You forgor the flare at shore 
-                var currentItem = character.data.currentItem;
-
-                if (IsHoldingSomethingTemporary(character) && currentItem)
-                {
-                    if (currentItem.TryGetComponent<Flare>(out _))
-                    {
-                        character.player.EmptySlot(character.refs.items.currentSelectedSlot);
-                        flareRemoved++;
-                    }
-                    else
-                    {
-                        if (UnnamedCompatibilityHandler.Enabled)
-                        {
-                            flareRemoved += UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(
-                                character.player.tempFullSlot.prefab, currentItem.data);
-                        }
-                    }
-                }
-
-
-                // Backpack slot
-                if (!character.player.backpackSlot.IsEmpty())
-                {
-                    if (IsHoldingBackpack(character) && currentItem)
-                    {
-                        // Currently holding the backpack
-                        if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
-                                out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
-                        {
-                            flareRemoved += RemoveFlairFromBackpack(bd, v);
-                        }
-                    }
-                    else if (character.player.backpackSlot.hasBackpack)
-                    {
-                        // Currenty wearking the backpack
-                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
-                            character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
-                                out BackpackData bd))
-                        {
-                            flareRemoved += RemoveFlairFromBackpack(bd, bv);
-                        }
-                    }
-                }
-
-                for (var index = character.player.itemSlots.Length - 1; index >= 0; --index)
-                {
-                    var s = character.player.GetItemSlot((byte) index);
-
-                    if (s.IsEmpty())
-                    {
-                        continue;
-                    }
-
-                    if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
-                    {
-                        flareRemoved += UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(s.prefab, s.data);
-                    }
-                    else
-                    {
-                        if (IsHoldingOutSlot(character, s) && currentItem)
-                        {
-                            if (currentItem.TryGetComponent<Flare>(out _))
-                            {
-                                character.player.EmptySlot(character.refs.items.currentSelectedSlot);
-                                flareRemoved++;
-                            }
-                        }
-                        else
-                        {
-                            if (s.prefab.TryGetComponent<Flare>(out _))
-                            {
-                                character.player.EmptySlot(Optionable<byte>.Some((byte) index));
-
-                                flareRemoved++;
-                            }
-                        }
-                    }
-                }
+                RemoveTemporaryFlares(character, ref unnamedFlareRemoved, ref flareRemoved);
+                RemoveFlaresFromBackpack(character, ref flareRemoved, ref unnamedFlareRemoved);
+                RemoveFlaresFromInventory(character, ref flareRemoved, ref unnamedFlareRemoved);
 
                 character.view.RPC(nameof(Player.SyncInventoryRPC), RpcTarget.Others,
                     IBinarySerializable.ToManagedArray(
                         new InventorySyncData(character.player.itemSlots, character.player.backpackSlot,
                             character.player.tempFullSlot)), false);
 
-                GreenDemonChallenge.Log.LogInfo($"Removed {flareRemoved} flare(s).");
+                var totFlareRemoved = flareRemoved + unnamedFlareRemoved;
+                GreenDemonChallenge.Log.LogInfo($"Removed {totFlareRemoved} flare(s).");
 
-                if (flareRemoved > 0 && MapHandler.CurrentMapSegment.biome == Biome.BiomeType.Shore)
-                {
-                    // Replace the flares where they should be
-
-                    var itemSpawners = MapHandler.CurrentMapSegment.segmentParent
-                        .GetComponentsInChildren<SingleItemSpawner>(true);
-
-                    foreach (var spawner in itemSpawners)
-                    {
-                        if (spawner.prefab.TryGetComponent<Flare>(out _))
-                        {
-                            GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_RespawnFlares),
-                                RpcTarget.All,
-                                spawner.transform.position, flareRemoved);
-                        }
-                    }
-                }
+                RespawnFlares(unnamedFlareRemoved, flareRemoved);
 
                 break;
             }
 
 
             case GreenDemonCaughtEffects.COOKED:
-                // Poor boys gets no items.
             {
                 var cookedItems = 0;
 
-                var currentItem = character.data.currentItem;
-
-                if (IsHoldingSomethingTemporary(character))
-                {
-                    if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(character.player
-                            .tempFullSlot.prefab))
-                    {
-                        cookedItems += UnnamedCompatibilityHandler.CookGarbageBags(character.player.tempFullSlot.prefab,
-                            character.player.tempFullSlot.data);
-                    }
-                    else
-                    {
-                        currentItem.cooking.FinishCooking();
-                        cookedItems++;
-                    }
-                }
-
-                // Backpack slot
-                if (!character.player.backpackSlot.IsEmpty())
-                {
-                    if (IsHoldingBackpack(character) && currentItem)
-                    {
-                        // Currently holding the backpack
-                        if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
-                                out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
-                        {
-                            cookedItems += CookItemFromBackpack(bd, v);
-                        }
-
-                        currentItem.cooking.FinishCooking();
-                    }
-                    else if (character.player.backpackSlot.hasBackpack)
-                    {
-                        // Currenty wearking the backpack
-                        if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
-                            character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
-                                out BackpackData bd))
-                        {
-                            cookedItems += CookItemFromBackpack(bd, bv);
-                        }
-
-                        if (character.player.backpackSlot.data.TryGetDataEntry<IntItemData>(DataEntryKey.CookedAmount,
-                                out var cooked))
-                        {
-                            ++cooked.Value;
-                            cookedItems++;
-
-                            if (bv is BackpackOnBackVisuals onBack)
-                            {
-                                onBack.RefreshCooking();
-                            }
-                        }
-                    }
-                }
-
-
-                for (var index = character.player.itemSlots.Length - 1; index >= 0; --index)
-                {
-                    var s = character.player.GetItemSlot((byte) index);
-
-                    if (s.IsEmpty())
-                    {
-                        continue;
-                    }
-
-                    if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
-                    {
-                        cookedItems += UnnamedCompatibilityHandler.CookGarbageBags(s.prefab, s.data);
-                    }
-                    else
-                    {
-                        if (IsHoldingOutSlot(character, s) && currentItem)
-                        {
-                            currentItem.cooking.FinishCooking();
-                            cookedItems++;
-                        }
-                        else
-                        {
-                            if (s.data.TryGetDataEntry<IntItemData>(DataEntryKey.CookedAmount, out var cookData))
-                            {
-                                ++cookData.Value;
-                            }
-
-                            cookedItems++;
-                        }
-                    }
-
-                    if (s.prefab.cooking &&
-                        (s.prefab.cooking.hasExplosion &&
-                         s.prefab.cooking.additionalCookingBehaviors.Any(cb => cb is CookingBehavior_Explode)) || (
-                            (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
-                        )
-                       )
-                    {
-                        GreenDemonChallenge.Log.LogInfo(
-                            $"{s.prefab.gameObject} has special interaction when being cooked! Automatically droping cooked {s.prefab.gameObject}...");
-                        character.photonView.RPC(nameof(CharacterItems.DropItemFromSlotRPC), RpcTarget.All,
-                            s.itemSlotID,
-                            character.Center + character.data.lookDirection);
-                    }
-                }
+                CookTemporaryItem(character, ref cookedItems);
+                CookBackpackItems(character, ref cookedItems);
+                CookInventoryItems(character, ref cookedItems);
 
                 character.view.RPC(nameof(Player.SyncInventoryRPC), RpcTarget.Others,
                     IBinarySerializable.ToManagedArray(
@@ -922,20 +687,17 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 break;
 
             case GreenDemonCaughtEffects.BLINDS:
-            {
                 character.refs.afflictions.AddAffliction(new Affliction_Blind()
                 {
                     totalTime = 60f
                 });
-            }
                 break;
+            
             case GreenDemonCaughtEffects.NUMBS:
-            {
                 character.refs.afflictions.AddAffliction(new Affliction_Numb()
                 {
                     totalTime = 60f
                 });
-            }
                 break;
 
             case GreenDemonCaughtEffects.BIOME_CLOUD:
@@ -955,21 +717,30 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 break;
 
             case GreenDemonCaughtEffects.BAD_SHROOMBERRY:
-            {
                 character.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Spores, 0.05f);
                 character.StartCoroutine(DoRandomShroomberryEffect(character,
                     Action_RandomMushroomEffect.BadEffects.RandomElement()));
                 break;
-            }
 
             case GreenDemonCaughtEffects.EXPLODE:
             {
                 var d =
                     PhotonNetwork.Instantiate("0_Items/Dynamite", character.Center, Quaternion.identity);
-                var dyn = d.GetComponent<Dynamite>();
-                dyn.LightFlare();
-                dyn.startingFuseTime = 0f;
+
                 // BOOM!
+                if (d.TryGetComponent(out Dynamite dyn))
+                {
+                    dyn.LightFlare();
+                    dyn.startingFuseTime = 0f;
+                }
+                else
+                {
+                    GreenDemonChallenge.Log.LogWarning(
+                        "Can't find dynamite. Deleting spawned object and make you hurt instead");
+                    PhotonNetwork.Destroy(d);
+                    ApplyEffect(character, GreenDemonCaughtEffects.HALF_INJURY);
+                }
+
                 break;
             }
 
@@ -977,23 +748,34 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             {
                 // Time to fly away! 
                 var t = PhotonNetwork.Instantiate("Tornado", character.Center, Quaternion.identity);
-                var tor = t.GetComponent<Tornado>();
 
-                tor.tornadoLifetimeMax = 12f;
-                tor.tornadoLifetimeMin = 20f;
-                tor.force = 75f;
+                if (t.TryGetComponent(out Tornado tor))
+                {
+                    tor.tornadoLifetimeMax = 12f;
+                    tor.tornadoLifetimeMin = 20f;
+                    tor.force = 75f;
 
-                tor.selectNewTargetInSeconds = 35f;
+                    tor.selectNewTargetInSeconds = 35f;
 
-                // tornado will target the player no matter what.
-                tor.targetParent = character.refs.hip.transform;
-                tor.target = character.transform;
+                    // tornado will target the player no matter what.
+                    tor.targetParent = character.refs.hip.transform;
+                    tor.target = character.transform;
+
+                    GreenDemonHandler.Instance.StartCoroutine(GreenDemonHandler.ForceTornadoTarget(tor, character
+                        .transform, tor.selectNewTargetInSeconds));
+                }
+                else
+                {
+                    GreenDemonChallenge.Log.LogWarning(
+                        "Can't find tornado. Deleting spawned object and make you fling instead");
+                    PhotonNetwork.Destroy(t);
+                    ApplyEffect(character, GreenDemonCaughtEffects.FLING);
+                }
 
                 break;
             }
 
             case GreenDemonCaughtEffects.GO_BACK:
-            {
                 // See ya!
                 if (!character.TryCheckpoint())
                 {
@@ -1002,22 +784,32 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 }
 
                 break;
-            }
 
             case GreenDemonCaughtEffects.SPAWN_LUCKY_BLOCK:
             {
                 if (LuckyBlocksCompatibilityHandler.Enabled)
                 {
-                    var block = PhotonNetwork.Instantiate("0_Items/legocool.LuckyBlocks:LuckyBlock",
+                    var blockGameObject = PhotonNetwork.Instantiate("0_Items/legocool.LuckyBlocks:LuckyBlock",
                         character.refs.head.transform.position + (Vector3.up * 1.85f),
-                        Quaternion.identity).GetComponent<Item>();
+                        Quaternion.identity);
 
-                    block.lastThrownCharacter = character;
+                    if (blockGameObject.TryGetComponent(out Item block))
+                    {
+                        block.lastThrownCharacter = character;
 
-                    var vv = ((character.refs.head.transform.position - block.transform.position).normalized * 25f) /
-                             Time.deltaTime;
+                        var vv =
+                            ((character.refs.head.transform.position - block.transform.position).normalized * 25f) /
+                            Time.deltaTime;
 
-                    block.rig.AddForce(vv, ForceMode.Acceleration);
+                        block.rig.AddForce(vv, ForceMode.Acceleration);
+                    }
+                    else
+                    {
+                        GreenDemonChallenge.Log.LogWarning(
+                            "Can't find item component. Deleting spawned object and give you a RANDOM effect instead.");
+                        PhotonNetwork.Destroy(blockGameObject);
+                        ApplyEffect(character, GreenDemonCaughtEffects.RANDOM);
+                    }
                 }
                 else
                 {
@@ -1030,7 +822,6 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             }
 
             case GreenDemonCaughtEffects.UNNAMIFY:
-            {
                 if (UnnamedCompatibilityHandler.Enabled)
                 {
                     UnnamedCompatibilityHandler.UnnamifyInventory(character);
@@ -1041,12 +832,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a RANDOM effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.RANDOM);
                 }
-
                 break;
-            }
 
             case GreenDemonCaughtEffects.SET_FIRE:
-            {
                 if (UnnamedCompatibilityHandler.Enabled)
                 {
                     UnnamedCompatibilityHandler.SetCharacterOnFire(character);
@@ -1057,12 +845,10 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a FIRE CLOUD effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.FIRE_CLOUD);
                 }
-
                 break;
-            }
+            
 
             case GreenDemonCaughtEffects.FIREBALL:
-            {
                 if (UnnamedCompatibilityHandler.Enabled)
                 {
                     GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_ThrowFireball),
@@ -1074,44 +860,69 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a FIRE CLOUD effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.FIRE_CLOUD);
                 }
-
                 break;
-            }
 
             case GreenDemonCaughtEffects.BEES:
             {
-                var bees = PhotonNetwork.Instantiate("BeeSwarm", character.Head, Quaternion.identity).GetComponent<
-                    BeeSwarm>();
+                var beesGameObject = PhotonNetwork.Instantiate("BeeSwarm", character.Head, Quaternion.identity);
 
-                bees.photonView.RPC(nameof(BeeSwarm.SetBeesAngryRPC), RpcTarget.All, true);
+                if (beesGameObject.TryGetComponent(out BeeSwarm bees))
+                {
+                    bees.photonView.RPC(nameof(BeeSwarm.SetBeesAngryRPC), RpcTarget.All, true);
+                }
+                else
+                {
+                    GreenDemonChallenge.Log.LogWarning(
+                        "Can't find bees. Deleting spawned object and give you a HALF_POISON effect instead.");
+                    PhotonNetwork.Destroy(beesGameObject);
+                    ApplyEffect(character, GreenDemonCaughtEffects.HALF_POISON);
+                }
+
                 break;
             }
 
             case GreenDemonCaughtEffects.SLIP:
             {
-                var peel = FindAnyObjectByType<BananaPeel>()?.gameObject ?? PhotonNetwork.InstantiateItem(
+                var randomPeel = FindAnyObjectByType<BananaPeel>()?.gameObject;
+
+                var peel = randomPeel ?? PhotonNetwork.InstantiateItem(
                     "Berrynana Peel Pink Variant", character.Head,
                     Quaternion.identity);
 
-                peel.GetComponent<PhotonView>().RPC(nameof(BananaPeel.RPCA_TriggerBanana), RpcTarget.All,
-                    character.view.ViewID);
+                if (peel.TryGetComponent(out PhotonView bananaView))
+                {
+                    bananaView.RPC(nameof(BananaPeel.RPCA_TriggerBanana), RpcTarget.All,
+                        character.view.ViewID);
+                }
+                else
+                {
+                    GreenDemonChallenge.Log.LogWarning(
+                        "Can't find berrynana peel. Make you FALL instead.");
+
+                    if (!randomPeel)
+                    {
+                        GreenDemonChallenge.Log.LogWarning(
+                            "Destroying the spawned peel.");
+                        PhotonNetwork.Destroy(peel);
+                    }
+
+                    ApplyEffect(character, GreenDemonCaughtEffects.FALL);
+                }
 
                 break;
             }
 
             case GreenDemonCaughtEffects.NO_STAM:
-            {
                 character.UseStamina(1.0f, false);
                 GreenDemonHandler.Instance.StartCoroutine(GreenDemonHandler.KeepStamEmpty(character, 60f));
                 break;
-            }
+
             case GreenDemonCaughtEffects.W_KEY_STUCK:
-            {
                 GreenDemonHandler.Instance.StartCoroutine(GreenDemonHandler.StickWFor(60f));
                 break;
-            }
+
             case GreenDemonCaughtEffects.ASTORNAUT:
-            {
+                // now jump
                 character.refs.afflictions.AddAffliction(new Affliction_LowGravity()
                 {
                     lowGravAmount = 10,
@@ -1119,13 +930,346 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     totalTime = 15f
                 });
 
+                // I SAID JUMP!
                 character.view.RPC(nameof(CharacterMovement.JumpRpc), RpcTarget.All, false);
-
                 break;
-            }
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(GreenDemonChallenge.RoomGreenDemonCaughtEffect));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveWholeInventory(Character character, ref int itemRemoved)
+    {
+        for (var i = character.player.itemSlots.Length - 1; i >= 0; --i)
+        {
+            var s = character.player.GetItemSlot((byte) i);
+
+            if (s.IsEmpty())
+            {
+                continue;
+            }
+
+            if (IsHoldingOutSlot(character, s) && character.data.currentItem is { } currentItem)
+            {
+                character.player.EmptySlot(character.refs.items.currentSelectedSlot);
+                PhotonNetwork.Destroy(character.data.currentItem.gameObject);
+                itemRemoved++;
+            }
+            else
+            {
+                character.player.EmptySlot(Optionable<byte>.Some((byte) i));
+                itemRemoved++;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveBackpack(Character character, ref int itemRemoved)
+    {
+        // Backpack slot
+        if (!character.player.backpackSlot.IsEmpty())
+        {
+            if (IsHoldingBackpack(character) && character.data.currentItem is { } currentItem)
+            {
+                // Currently holding the backpack
+                if (currentItem is Backpack b &&
+                    b.data.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bd))
+                {
+                    itemRemoved += bd.FilledSlotCount();
+                    itemRemoved++;
+                    character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
+                    PhotonNetwork.Destroy(character.data.currentItem.gameObject);
+                }
+            }
+            else if (character.player.backpackSlot.hasBackpack)
+            {
+                // Currenty wearking the backpack
+                if (character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd))
+                {
+                    itemRemoved += bd.FilledSlotCount();
+                    character.player.EmptySlot(Optionable<byte>.Some(character.player.backpackSlot.itemSlotID));
+                    itemRemoved++;
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveTemporaryItem(Character character, ref int itemRemoved)
+    {
+        if (IsHoldingSomethingTemporary(character) && character.data.currentItem is { } currentItem)
+        {
+            character.player.EmptySlot(character.refs.items.currentSelectedSlot);
+            PhotonNetwork.Destroy(currentItem.gameObject);
+            itemRemoved++;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CookInventoryItems(Character character, ref int cookedItems)
+    {
+        for (var index = character.player.itemSlots.Length - 1; index >= 0; --index)
+        {
+            var s = character.player.GetItemSlot((byte) index);
+
+            if (s.IsEmpty())
+            {
+                continue;
+            }
+
+            if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
+            {
+                cookedItems += UnnamedCompatibilityHandler.CookGarbageBags(s.prefab, s.data);
+            }
+            else
+            {
+                if (IsHoldingOutSlot(character, s) && character.data.currentItem is { } currentItem)
+                {
+                    currentItem.cooking.FinishCooking();
+                    cookedItems++;
+                }
+                else
+                {
+                    if (s.data.TryGetDataEntry<IntItemData>(DataEntryKey.CookedAmount, out var cookData))
+                    {
+                        ++cookData.Value;
+                    }
+
+                    cookedItems++;
+                }
+            }
+
+            if (s.prefab.cooking &&
+                (s.prefab.cooking.hasExplosion &&
+                 s.prefab.cooking.additionalCookingBehaviors.Any(cb => cb is CookingBehavior_Explode)) || (
+                    (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
+                )
+               )
+            {
+                // We know this specific item has special cooking behaviors, so it needs to come out!
+                GreenDemonChallenge.Log.LogInfo(
+                    $"{s.prefab.gameObject} has special interaction when being cooked! Automatically dropping cooked {s.prefab.gameObject}...");
+
+                character.photonView.RPC(nameof(CharacterItems.DropItemFromSlotRPC), RpcTarget.All,
+                    s.itemSlotID,
+                    character.Center + character.data.lookDirection);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CookBackpackItems(Character character, ref int cookedItems)
+    {
+        // Backpack slot
+        if (!character.player.backpackSlot.IsEmpty())
+        {
+            if (IsHoldingBackpack(character) && character.data.currentItem is { } currentItem)
+            {
+                // Currently holding the backpack
+                if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
+                {
+                    cookedItems += CookItemFromBackpack(bd, v);
+                }
+
+                currentItem.cooking.FinishCooking();
+            }
+            else if (character.player.backpackSlot.hasBackpack)
+            {
+                // Currenty wearking the backpack
+                if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
+                    character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd))
+                {
+                    cookedItems += CookItemFromBackpack(bd, bv);
+                }
+
+                if (character.player.backpackSlot.data.TryGetDataEntry<IntItemData>(DataEntryKey.CookedAmount,
+                        out var cooked))
+                {
+                    ++cooked.Value;
+                    cookedItems++;
+
+                    if (bv is BackpackOnBackVisuals onBack)
+                    {
+                        onBack.RefreshCooking();
+                    }
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CookTemporaryItem(Character character, ref int cookedItems)
+    {
+        if (IsHoldingSomethingTemporary(character) && character.data.currentItem is { } currentItem)
+        {
+            if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(character.player
+                    .tempFullSlot.prefab))
+            {
+                cookedItems += UnnamedCompatibilityHandler.CookGarbageBags(character.player.tempFullSlot.prefab,
+                    character.player.tempFullSlot.data);
+            }
+            else
+            {
+                currentItem.cooking.FinishCooking();
+                cookedItems++;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveFlaresFromInventory(Character character, ref int flareRemoved,
+        ref int unnamedFlareRemoved)
+    {
+        for (var index = character.player.itemSlots.Length - 1; index >= 0; --index)
+        {
+            var s = character.player.GetItemSlot((byte) index);
+
+            if (s.IsEmpty())
+            {
+                continue;
+            }
+
+            if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsGarbageBag(s.prefab))
+            {
+                UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(s.prefab, s.data, ref flareRemoved,
+                    ref unnamedFlareRemoved);
+            }
+            else
+            {
+                if (IsHoldingOutSlot(character, s) && character.data.currentItem is { } currentItem)
+                {
+                    if (currentItem.TryGetComponent<Flare>(out _))
+                    {
+                        if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsUnnamed(currentItem))
+                        {
+                            unnamedFlareRemoved++;
+                        }
+                        else
+                        {
+                            flareRemoved++;
+                        }
+
+                        character.player.EmptySlot(character.refs.items.currentSelectedSlot);
+                    }
+                }
+                else
+                {
+                    if (s.prefab.TryGetComponent<Flare>(out _))
+                    {
+                        if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsUnnamed(s.prefab))
+                        {
+                            unnamedFlareRemoved++;
+                        }
+                        else
+                        {
+                            flareRemoved++;
+                        }
+
+                        character.player.EmptySlot(Optionable<byte>.Some((byte) index));
+                    }
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveFlaresFromBackpack(Character character, ref int flareRemoved,
+        ref int unnamedFlareRemoved)
+    {
+        // Backpack slot
+        if (!character.player.backpackSlot.IsEmpty())
+        {
+            if (IsHoldingBackpack(character) && character.data.currentItem is { } currentItem)
+            {
+                // Currently holding the backpack
+                if (currentItem is Backpack b && b.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd) && b.TryGetComponent(out BackpackVisuals v))
+                {
+                    RemoveFlairFromBackpack(bd, v, ref flareRemoved, ref unnamedFlareRemoved);
+                }
+            }
+            else if (character.player.backpackSlot.hasBackpack)
+            {
+                // Currenty wearking the backpack
+                if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is var bv &&
+                    character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd))
+                {
+                    RemoveFlairFromBackpack(bd, bv, ref flareRemoved, ref unnamedFlareRemoved);
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveTemporaryFlares(Character character, ref int unnamedFlareRemoved,
+        ref int flareRemoved)
+    {
+        if (IsHoldingSomethingTemporary(character) && character.data.currentItem is { } currentItem)
+        {
+            if (currentItem.TryGetComponent<Flare>(out _))
+            {
+                if (UnnamedCompatibilityHandler.Enabled && UnnamedCompatibilityHandler.IsUnnamed(
+                        currentItem))
+                {
+                    unnamedFlareRemoved++;
+                }
+                else
+                {
+                    flareRemoved++;
+                }
+
+                character.player.EmptySlot(character.refs.items.currentSelectedSlot);
+            }
+            else
+            {
+                if (UnnamedCompatibilityHandler.Enabled)
+                {
+                    UnnamedCompatibilityHandler.RemoveFlairsFormGarbageBags(
+                        character.player.tempFullSlot.prefab, currentItem.data, ref flareRemoved,
+                        ref unnamedFlareRemoved);
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RespawnFlares(int unnamedFlareRemoved, int flareRemoved)
+    {
+        if (flareRemoved + unnamedFlareRemoved > 0 && MapHandler.Instance.GetCurrentSegment() == Segment.Beach)
+        {
+            // Replace the flares where they should be (i.e. in the crash plane's cockpit)
+            var itemSpawners = MapHandler.CurrentMapSegment.segmentParent
+                .GetComponentsInChildren<SingleItemSpawner>(true);
+
+            foreach (var spawner in itemSpawners)
+            {
+                if (spawner.prefab.TryGetComponent<Flare>(out _))
+                {
+                    if (UnnamedCompatibilityHandler.Enabled && unnamedFlareRemoved > 0)
+                    {
+                        // Spawn unnamed flares 
+                        GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_RespawnUnnamedFlares),
+                            RpcTarget.All,
+                            spawner.transform.position, unnamedFlareRemoved);
+                    }
+
+                    if (flareRemoved > 0)
+                    {
+                        // Spawn normal flares 
+                        GreenDemonHandler.Instance.photonView.RPC(nameof(GreenDemonHandler.RPC_RespawnFlares),
+                            RpcTarget.All,
+                            spawner.transform.position, flareRemoved);
+                    }
+
+                    break;
+                }
+            }
         }
     }
 
@@ -1189,34 +1333,68 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         }
     }
 
-    private static bool IsEffectRandoValid(Character c, GreenDemonCaughtEffects eff)
+    public static bool AllowsCasuals(GreenDemonRandomTypes rand)
+    {
+        return rand < GreenDemonRandomTypes.HARDCORE;
+    }
+
+    public static bool AllowsHardcores(GreenDemonRandomTypes rand)
+    {
+        return rand > GreenDemonRandomTypes.CASUAL;
+    }
+
+    private static bool IsEffectRandoValid(Character c, GreenDemonCaughtEffects eff, GreenDemonRandomTypes rand = GreenDemonRandomTypes.STANDARD)
     {
         return eff switch
         {
             GreenDemonCaughtEffects.RANDOM => false,
-            GreenDemonCaughtEffects.BAD_SHROOMBERRY or GreenDemonCaughtEffects.FULL_POISON
-                or GreenDemonCaughtEffects.HALF_POISON or GreenDemonCaughtEffects.FULL_SPORES
-                or GreenDemonCaughtEffects.HALF_SPORES or GreenDemonCaughtEffects.EPPY => !c.data.isSkeleton,
-            GreenDemonCaughtEffects.BEES => !c.data.isSkeleton && (!RunSettings.IsCustomRun ||
-                                                                   RunSettings.GetValue(RunSettings.SETTINGTYPE
-                                                                       .Hazard_Bees) >= 1),
-            GreenDemonCaughtEffects.SCORPION => !c.data.isSkeleton && (!RunSettings.IsCustomRun ||
-                                                                       RunSettings.GetValue(RunSettings.SETTINGTYPE
-                                                                           .Hazard_Scorpions) >= 1),
+            GreenDemonCaughtEffects.BAD_SHROOMBERRY => AllowsCasuals(rand) && !c.data.isSkeleton,
+            GreenDemonCaughtEffects.FULL_POISON => AllowsHardcores(rand) && !c.data.isSkeleton,
+            GreenDemonCaughtEffects.HALF_POISON => AllowsCasuals(rand) && !c.data.isSkeleton,
+            GreenDemonCaughtEffects.FULL_SPORES => AllowsHardcores(rand) && !c.data.isSkeleton,
+            GreenDemonCaughtEffects.HALF_SPORES => AllowsCasuals(rand) && !c.data.isSkeleton,
+            GreenDemonCaughtEffects.EPPY => !c.data.isSkeleton,
+            GreenDemonCaughtEffects.BEES => AllowsCasuals(rand) && !c.data.isSkeleton && (!RunSettings.IsCustomRun ||
+                RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Bees) >= 1),
+            GreenDemonCaughtEffects.SCORPION => AllowsCasuals(rand) && !c.data.isSkeleton &&
+                                                (!RunSettings.IsCustomRun ||
+                                                 RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Scorpions) >= 1),
             GreenDemonCaughtEffects.SET_FIRE => UnnamedCompatibilityHandler.Enabled && !c.data.isSkeleton,
-            GreenDemonCaughtEffects.FIREBALL or GreenDemonCaughtEffects.UNNAMIFY => UnnamedCompatibilityHandler.Enabled,
-            GreenDemonCaughtEffects.SPAWN_LUCKY_BLOCK => LuckyBlocksCompatibilityHandler.Enabled,
-            GreenDemonCaughtEffects.NO_FLARE => !Ascents.shouldSpawnFlare && IsAFlareBearer(c),
+            GreenDemonCaughtEffects.FIREBALL => AllowsHardcores(rand) && UnnamedCompatibilityHandler.Enabled,
+            GreenDemonCaughtEffects.UNNAMIFY => AllowsHardcores(rand) && UnnamedCompatibilityHandler.Enabled,
+            GreenDemonCaughtEffects.SPAWN_LUCKY_BLOCK => AllowsCasuals(rand) && LuckyBlocksCompatibilityHandler.Enabled,
+            GreenDemonCaughtEffects.NO_FLARE => AllowsHardcores(rand) && !Ascents.shouldSpawnFlare && IsAFlareBearer(c),
             GreenDemonCaughtEffects.SCOUTMASTER => RunSettings.IsCustomRun
                 ? RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Scoutmaster) >= 1
                 : Ascents.currentAscent < 0,
-            GreenDemonCaughtEffects.ZOMBIFY => Ascents.shouldSpawnZombie,
+            GreenDemonCaughtEffects.ZOMBIFY => AllowsHardcores(rand) && Ascents.shouldSpawnZombie,
             GreenDemonCaughtEffects.TORNADO => !RunSettings.IsCustomRun ||
                                                RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Tornado) >= 1,
             GreenDemonCaughtEffects.MANDRAKE => !RunSettings.IsCustomRun ||
                                                 RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Mandrake) >= 1,
             GreenDemonCaughtEffects.DYNA_BRUH => !RunSettings.IsCustomRun ||
                                                  RunSettings.GetValue(RunSettings.SETTINGTYPE.Hazard_Dynamite) >= 1,
+            GreenDemonCaughtEffects.KILL => AllowsHardcores(rand),
+            GreenDemonCaughtEffects.FLING => AllowsHardcores(rand),
+            GreenDemonCaughtEffects.POOR_BOY => AllowsHardcores(rand),
+            GreenDemonCaughtEffects.FULL_INJURY => AllowsHardcores(rand),
+            GreenDemonCaughtEffects.HALF_INJURY => c.data.isSkeleton ? AllowsHardcores(rand) : AllowsCasuals(rand),
+            GreenDemonCaughtEffects.CURSE => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.EXPLODE => AllowsHardcores(rand),
+            GreenDemonCaughtEffects.POISON_CLOUD => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.SPORE_CLOUD => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.FIRE_CLOUD => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.ICE_CLOUD => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.BIOME_CLOUD => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.BLINDS => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.FALL => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.NUMBS => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.GO_BACK => true,
+            GreenDemonCaughtEffects.SLIP => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.W_KEY_STUCK => AllowsCasuals(rand),
+            GreenDemonCaughtEffects.COOKED => true,
+            GreenDemonCaughtEffects.NO_STAM => true,
+            GreenDemonCaughtEffects.ASTORNAUT => AllowsHardcores(rand),
             _ => true
         };
     }
@@ -1242,9 +1420,10 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                 }
                 else if (character.player.backpackSlot.hasBackpack)
                 {
-                    if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is { } bbv)
+                    if (character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                            out BackpackData bd))
                     {
-                        foreach (var itemSlot in bbv.GetBackpackData().itemSlots)
+                        foreach (var itemSlot in bd.itemSlots)
                         {
                             if (!itemSlot.IsEmpty() && itemSlot.prefab.itemID == flareItemId)
                                 return true;
@@ -1255,10 +1434,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
             return character.player.HasInAnySlot(flareItemId);
         }
-        else
-        {
-            return UnnamedCompatibilityHandler.HasAnyFlares(character);
-        }
+
+        return UnnamedCompatibilityHandler.HasAnyFlares(character);
     }
 
     private IEnumerator DoRandomShroomberryEffect(Character character, int effect)
@@ -1396,6 +1573,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
     private Vector3 m_kilnBaseSpeed;
     private float m_roomSpeedMultiplier;
     public GreenDemonDetector m_detector = null!;
+    public int m_demonIndex = 0;
 
     private IEnumerator Shrink()
     {

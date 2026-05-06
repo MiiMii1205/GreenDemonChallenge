@@ -54,6 +54,13 @@ public static class UnnamedCompatibilityHandler
         }
     }
 
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static bool IsUnnamed(Item it)
+    {
+        return UnnamedPlugin.IsUnnamed(it.gameObject);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void UnnamifyInventory(Character character)
     {
@@ -203,10 +210,21 @@ public static class UnnamedCompatibilityHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static int RemoveFlairsFormGarbageBags(Item sPrefab, ItemInstanceData sData)
+    public static void RespawnUnnamedFlares(Vector3 spawnPos, int amountToRespawn)
     {
-        var flareRemoved = 0;
+        if (ItemDatabase.TryGetItem(32, out var it) && UnnamedPlugin.GetUnnamedVariant(it).TryGetComponent(out Item uitem))
+        {
+            for (var i = 0; i < amountToRespawn; i++)
+            {
+                PhotonNetwork.InstantiateItemRoom(uitem.gameObject.name, spawnPos + (Vector3.up * 0.09147437f * i),
+                    Quaternion.identity);
+            }
+        }
+    }
 
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void RemoveFlairsFormGarbageBags(Item sPrefab, ItemInstanceData sData, ref int flareRemoved,  ref int unnamedFlareRemoved)
+    {
         if (sPrefab.TryGetComponent(out UnnamedGarbageBagController ugb) &&
             sData.TryGetDataEntry(DataEntryKey.BackpackData, out BackpackData bpd))
         {
@@ -221,17 +239,25 @@ public static class UnnamedCompatibilityHandler
 
                 if (slot.prefab.TryGetComponent<Flare>(out _))
                 {
+                    if (IsUnnamed(slot.prefab))
+                    {
+                        unnamedFlareRemoved++;
+                    }
+                    else
+                    {
+                        flareRemoved++;
+                    }
+
                     slot.EmptyOut();
-                    flareRemoved++;
+                    
                 }
                 else if (slot.prefab.TryGetComponent<UnnamedGarbageBagController>(out _))
                 {
-                    flareRemoved += RemoveFlairsFormGarbageBags(slot.prefab, slot.data);
+                    RemoveFlairsFormGarbageBags(slot.prefab, slot.data, ref flareRemoved, ref unnamedFlareRemoved);
                 }
             }
         }
 
-        return flareRemoved;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
@@ -350,9 +376,11 @@ public static class UnnamedCompatibilityHandler
             }
             else if (character.player.backpackSlot.hasBackpack)
             {
-                if (character.refs.backpackTransform.GetComponentInChildren<BackpackVisuals>(true) is { } bbv)
+
+                if (character.player.backpackSlot.data.TryGetDataEntry(DataEntryKey.BackpackData,
+                        out BackpackData bd))
                 {
-                    foreach (var itemSlot in bbv.GetBackpackData().itemSlots)
+                    foreach (var itemSlot in bd.itemSlots)
                     {
                         if (!itemSlot.IsEmpty() && (itemSlot.prefab.TryGetComponent<Flare>(out _) ||
                                                     CheckForFlareInGarbageBag(itemSlot)))
@@ -376,6 +404,7 @@ public static class UnnamedCompatibilityHandler
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     private static bool CheckForFlareInGarbageBag(ItemSlot itemSlot)
     {
         if (itemSlot.prefab.TryGetComponent(out UnnamedGarbageBagController ugb) &&
@@ -397,9 +426,10 @@ public static class UnnamedCompatibilityHandler
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void TryTurnIntoUnnamed(ref Item item)
     {
-        if (UnnamedPlugin.HasUnnamedVariant(item) &&  UnnamedPlugin.ShouldBeUnnamed)
+        if (UnnamedPlugin.HasUnnamedVariant(item) &&  UnnamedPlugin.ShouldBeUnnamed &&
+            UnnamedPlugin.GetUnnamedVariant(item).TryGetComponent(out Item uitem))
         {
-            item = UnnamedPlugin.GetUnnamedVariant(item).GetComponent<Item>();
+            item = uitem;
         }
     }
 }

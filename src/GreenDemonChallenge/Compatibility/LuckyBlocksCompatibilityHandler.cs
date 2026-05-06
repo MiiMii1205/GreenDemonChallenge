@@ -28,9 +28,10 @@ public static class LuckyBlocksCompatibilityHandler
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void PatchLuckyBlocks(Harmony harmony)
     {
-        Outcomes.AddOutcome(SpawnDemon, 1);
+        Outcomes.AddOutcome(SpawnDemon, 1, "Green Demon Spawn");
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void SpawnDemon(LuckyBreakable lb, Collision coll)
     {
         GreenDemonHandler.Instance.SpawnGreenDemon(lb.transform.position);

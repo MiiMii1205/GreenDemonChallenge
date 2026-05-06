@@ -17,7 +17,7 @@ public class GreenDemonDetector: MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if ( !other.isTrigger && selfID != other.GetInstanceID() && other.gameObject.TryGetComponent(out GreenDemon gd) )
+        if (!other.isTrigger && selfID != other.GetInstanceID() && other.gameObject.TryGetComponent(out GreenDemon gd))
         {
             m_demons[other.GetInstanceID()] = gd;
         }

@@ -22,6 +22,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     private Vector3 m_peakCrowStartPos;
     private Vector3 m_peakSpawnPoint;
     private Vector3 m_kilnSpawnPoint;
+    private Vector3 m_calderaSpawnPoint;
     private Transform m_kilnBridgeTransform = null!;
 
     private Bounds m_tombBounds;
@@ -30,6 +31,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     private Coroutine? m_peakCheckCoroutine;
 
     private bool m_spawnIsDone;
+
     public Vector3 GroupPosition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -64,19 +66,26 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
 
         m_kilnBridgeTransform = MapHandler.Instance.segments[4].segmentParent.transform.Find("Bridge");
 
-        m_peakCrowStartPos = new Vector3(m_kilnBridgeTransform.position.x, MountainProgressHandler.Instance.progressPoints[^1].transform.position.y,
+        m_peakCrowStartPos = new Vector3(m_kilnBridgeTransform.position.x,
+            MountainProgressHandler.Instance.progressPoints[^1].transform.position.y,
             m_kilnBridgeTransform.position.z);
 
         var peakBridge = PeakHandler.Instance.transform.Find("Bridge");
-        
+
         m_peakSpawnPoint = new Vector3(peakBridge.position.x, m_peakCrowStartPos.y,
             MountainProgressHandler.Instance.progressPoints[^1].transform.position.z);
-        
+
         m_kilnSpawnPoint = new Vector3(m_kilnBridgeTransform.position.x, m_kilnBridgeTransform.position.y + 49.57996f,
             m_kilnBridgeTransform.position.z);
+        var calSpawnPoint = MapHandler.Instance.segments[3].reconnectSpawnPos;
+        var calCampf = MapHandler.Instance.segments[3]._segmentCampfire.GetComponentInChildren<Campfire>(true);
+
+        m_calderaSpawnPoint = new Vector3(calSpawnPoint.position.x,
+            calCampf.transform.position.y,
+            calSpawnPoint.position.z + 58.367188f);
 
         // AddTombTriggers();
-        
+
         ResumeSpawning();
     }
 
@@ -86,7 +95,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         {
             StopCoroutine(m_demonSpawnCoroutine);
         }
-        
+
         m_spawnIsDone = false;
         m_demonSpawnCoroutine = StartCoroutine(CheckForProgression(delay));
     }
@@ -215,7 +224,6 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 photonView.RPC(nameof(RPC_AddPlayerToTombEntry), RpcTarget.All, otherPlayer.UserId);
             }
         }
-        
     }
 
     private void OnCharacterDied(Character character)
@@ -260,23 +268,22 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RPC_RespawnFlares(Vector3 spawnPos, int amountToRespawn)
     {
-        if (PhotonNetwork.IsMasterClient)
+        if (PhotonNetwork.IsMasterClient && ItemDatabase.TryGetItem(32, out var it))
         {
-            if (UnnamedCompatibilityHandler.Enabled)
+            for (var i = 0; i < amountToRespawn; i++)
             {
-                UnnamedCompatibilityHandler.RespawnFlares(spawnPos, amountToRespawn);
+                PhotonNetwork.InstantiateItemRoom(it.gameObject.name, spawnPos + (Vector3.up * 0.09147437f * i),
+                    Quaternion.identity);
             }
-            else
-            {
-                if (ItemDatabase.TryGetItem(32, out var it))
-                {
-                    for (var i = 0; i < amountToRespawn; i++)
-                    {
-                        PhotonNetwork.InstantiateItemRoom(it.gameObject.name, spawnPos + (Vector3.up * 0.09147437f * i),
-                            Quaternion.identity);
-                    }
-                }
-            }
+        }
+    }
+
+    [PunRPC]
+    public void RPC_RespawnUnnamedFlares(Vector3 spawnPos, int amountToRespawn)
+    {
+        if (PhotonNetwork.IsMasterClient && UnnamedCompatibilityHandler.Enabled)
+        {
+            UnnamedCompatibilityHandler.RespawnUnnamedFlares(spawnPos, amountToRespawn);
         }
     }
 
@@ -325,6 +332,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => m_demonSpawnCoroutine != null && !m_spawnIsDone;
     }
+
     public bool HasSpawned
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -445,11 +453,11 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         while (!m_reachedPeak)
         {
             yield return new WaitForSecondsRealtime(5f);
-            
+
             if (PhotonNetwork.IsMasterClient)
             {
                 UpdateGroupAverage();
-                
+
                 if (MountainProgressHandler.Instance.IsAtPeak(GroupPosition) && !m_reachedPeak)
                 {
                     m_reachedPeak = true;
@@ -458,10 +466,9 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                     ResumeSpawning(1.5f);
                 }
             }
-
         }
     }
-    
+
     private void UpdateGroupAverage()
     {
         var groupCenterAverage = Vector3.zero;
@@ -559,7 +566,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         // If there's No firecamp, wa are at peak, so we'll have to use something else...
         var crowSegmentEndPosition =
             !campfire ? m_peakEndTransform.transform.position : campfire.transform.position;
-        
+
         switch (mh.GetCurrentSegment())
         {
             case Segment.Caldera:
@@ -581,20 +588,20 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                     segmentStartPosition = m_peakSpawnPoint;
                     segmentEndPosition = m_peakEndTransform.position;
                 }
-                
+
                 break;
-            
+
             case Segment.Peak:
                 // We are at peak. Use the flare box as your end position.
                 crowSegmentEndPosition = m_peakEndTransform.position;
                 crowSegmentStartPosition = m_peakSpawnPoint;
-                
+
                 segmentStartPosition = m_peakSpawnPoint;
                 segmentEndPosition = m_peakEndTransform.position;
-                
+
                 break;
         }
-        
+
         var distanceFromPlayersToEnd = 0f;
         var distanceFromStartToEnd = Vector3.SqrMagnitude(crowSegmentEndPosition - crowSegmentStartPosition);
         var groupCenterAverage = Vector3.zero;
@@ -668,7 +675,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 CurrentCrowCompletion >= 0.4f,
             Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
-                CurrentClimbCompletion >= 1/3f,
+                CurrentClimbCompletion >= 1 / 3f,
             Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
                 CurrentCrowCompletion >= 0.5f && CurrentClimbCompletion >= 0.15f,
@@ -722,7 +729,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 true,
             Segment.TheKiln =>
                 // The kiln is taller, so only use the climb progression
-                CurrentClimbCompletion >= 1/3f,
+                CurrentClimbCompletion >= 1 / 3f,
             Segment.Peak =>
                 // we're at peak. It's longer than its height, so let's make it slightly more balanced
                 CurrentClimbCompletion >= 0.25f,
@@ -735,10 +742,14 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         var mh = MapHandler.Instance;
 
         var currentSegment = mh.segments[mh.currentSegment];
-        
+
         var spawnPosition = currentSegment.reconnectSpawnPos.position;
 
-        if (mh.GetCurrentSegment() == Segment.Peak)
+        if (mh.GetCurrentSegment() == Segment.Caldera)
+        {
+            spawnPosition = m_calderaSpawnPoint;
+        }
+        else if (mh.GetCurrentSegment() == Segment.Peak)
         {
             spawnPosition = m_peakSpawnPoint;
         }
@@ -752,20 +763,21 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
                 spawnPosition = m_peakSpawnPoint;
             }
         }
-        
+
         // Do a simple raycast to check the lowest point
-        
+
         if (Physics.Raycast(spawnPosition + (Vector3.up * 10f), Vector3.down, out RaycastHit hit, 1000f,
                 HelperFunctions.GetMask(HelperFunctions.LayerType.TerrainMap)))
         {
             spawnPosition = hit.point;
         }
-        
+
         for (var i = 0; i < greenDemonAmount; i++)
         {
-            NetworkPrefabManager.SpawnNetworkPrefab(GreenDemonChallenge.GreenDemonPrefab.name,
+            var gdgo = NetworkPrefabManager.SpawnNetworkPrefab(GreenDemonChallenge.GreenDemonPrefab.name,
                 spawnPosition + (Vector3.up * 10f) + (Vector3.right * i),
                 Quaternion.identity);
+            gdgo.GetComponent<GreenDemon>().m_demonIndex = i;
         }
     }
 
@@ -774,7 +786,7 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
     {
         SpawnGreenDemon(position);
     }
-    
+
     public void SpawnGreenDemon(Vector3 position)
     {
         NetworkPrefabManager.SpawnNetworkPrefab(GreenDemonChallenge.GreenDemonPrefab.name,
@@ -829,5 +841,16 @@ public class GreenDemonHandler : MonoBehaviourPunCallbacks
         WKeyIsStuck = true;
         yield return new WaitForSeconds(f);
         WKeyIsStuck = false;
+    }
+
+    public static IEnumerator ForceTornadoTarget(Tornado tornado, Transform target, float f)
+    {
+        var t = 0f;
+        while (tornado && t < f)
+        {
+            t += Time.deltaTime;
+            tornado.target = target;
+            yield return null;
+        }
     }
 }

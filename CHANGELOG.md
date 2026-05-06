@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.0] - 2026-05-06
+
+### Àdded ###
+
+- Added fallback effects when spawining GameObjects in some effects fails.
+- Added 3 random effect pool preset to give further control over green demons outcomes:
+  - This new lobby setting (named `Type of Green Demon Random Effects`) only takes effect when using the `RANDOM` catch effect and can be any of:
+    - `CASUAL`: Removes harsh effects, like `KILL` or `POOR_BOY`
+    - `STANDARD` _(default)_: Keeps all caught effects
+    - `HARDCORE`: Removes soft effects, like `SLIP` or `BEES`
+
+### Changed ###
+
+- Code cleanup, refactorings.
+- Fixed Lucky Blocks support.
+- When UnnamedProducts enabled, flairs that were taken away at the shore now respawn at the crash plane using their correct brand.
+- Made spawned tornado always target the caught player.
+- Moved calera's green demon spawn closer to The Kiln and closer to the lava.
+- Added a slight delay when spawning multiple green demons.
+
 ## [1.2.0] - 2026-05-03
 
 ### Added ###

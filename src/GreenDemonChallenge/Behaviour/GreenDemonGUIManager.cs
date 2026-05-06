@@ -19,8 +19,10 @@ public class GreenDemonGUIManager : MonoBehaviour
     {
         Instance = this;
         ResetDemonIsHere();
+        
         trackerScreen = Instantiate(GUIManager.instance.heroObject, GUIManager.instance.heroObject.transform.parent,
             true);
+        
         trackerScreen.name = "GreenDemonTrackers";
 
         trackerScreenTransform =  trackerScreen.GetComponent<RectTransform>();

@@ -898,9 +898,15 @@ public partial class GreenDemonChallenge : BaseUnityPlugin
     } = null!;
 
     [ConsoleCommand]
-    public static void SpawnGreenDemon(int? nb = 1)
+    public static void SpawnGreenDemons(int nb)
     {
-        GreenDemonHandler.Instance.SpawnGreenDemon(nb ?? 1);
+        GreenDemonHandler.Instance.SpawnGreenDemon(nb);
+    }
+
+    [ConsoleCommand]
+    public static void SpawnGreenDemons()
+    {
+        GreenDemonHandler.Instance.SpawnGreenDemon(1);
     }
 
     [ConsoleCommand]

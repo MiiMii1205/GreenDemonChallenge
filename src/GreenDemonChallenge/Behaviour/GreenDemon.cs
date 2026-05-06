@@ -12,6 +12,7 @@ using UnityEngine;
 using Zorro.Core;
 using Zorro.Core.Serizalization;
 using Quaternion = UnityEngine.Quaternion;
+using Random = System.Random;
 using Vector3 = UnityEngine.Vector3;
 
 namespace GreenDemonChallenge.Behaviour;
@@ -120,13 +121,35 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         yield return new WaitUntil(() => !animator.IsPlaying("GreenDemonSpawn"));
 
         // Wait another delay before starting the chase
-        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay + ((m_demonIndex) *
-            (GreenDemonChallenge
-                .RoomGreenDemonDelay / 2f)));
+        yield return new WaitForSecondsRealtime(GreenDemonChallenge.RoomGreenDemonDelay + ChaseDelay);
 
         m_isSpawning = false;
 
         source.Play();
+    }
+
+    private float ChaseDelay
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (m_demonIndex <= 0)
+            {
+                return 0f;
+            }
+
+            return ((m_demonIndex) *
+                (GreenDemonChallenge
+                    .RoomGreenDemonDelay / 2f) + RandomDelayOffset);
+        }
+    }
+
+    private static float RandomDelayOffset
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => UnityEngine.Random.Range(-GreenDemonChallenge
+            .RoomGreenDemonDelay / 4f, GreenDemonChallenge
+            .RoomGreenDemonDelay / 4f);
     }
 
     public float vel;
@@ -520,7 +543,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             case GreenDemonCaughtEffects.RANDOM:
             {
                 GreenDemonCaughtEffects eff;
-                
+
                 var vals =
                     (GreenDemonCaughtEffects[]) Enum.GetValues(typeof(GreenDemonCaughtEffects));
 
@@ -531,8 +554,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
 
                 ApplyEffect(character, eff);
             }
-                break; 
-            
+                break;
+
             case GreenDemonCaughtEffects.KILL:
                 // Congratulations!
                 character.DieInstantly();
@@ -692,7 +715,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                     totalTime = 60f
                 });
                 break;
-            
+
             case GreenDemonCaughtEffects.NUMBS:
                 character.refs.afflictions.AddAffliction(new Affliction_Numb()
                 {
@@ -832,6 +855,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a RANDOM effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.RANDOM);
                 }
+
                 break;
 
             case GreenDemonCaughtEffects.SET_FIRE:
@@ -845,8 +869,9 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a FIRE CLOUD effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.FIRE_CLOUD);
                 }
+
                 break;
-            
+
 
             case GreenDemonCaughtEffects.FIREBALL:
                 if (UnnamedCompatibilityHandler.Enabled)
@@ -860,6 +885,7 @@ public class GreenDemon : MonoBehaviourPunCallbacks
                         $"Can't find Unnamed Products... Giving you a FIRE CLOUD effect instead.");
                     ApplyEffect(character, GreenDemonCaughtEffects.FIRE_CLOUD);
                 }
+
                 break;
 
             case GreenDemonCaughtEffects.BEES:
@@ -1343,7 +1369,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         return rand > GreenDemonRandomTypes.CASUAL;
     }
 
-    private static bool IsEffectRandoValid(Character c, GreenDemonCaughtEffects eff, GreenDemonRandomTypes rand = GreenDemonRandomTypes.STANDARD)
+    private static bool IsEffectRandoValid(Character c, GreenDemonCaughtEffects eff,
+        GreenDemonRandomTypes rand = GreenDemonRandomTypes.STANDARD)
     {
         return eff switch
         {

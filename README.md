@@ -114,7 +114,7 @@ Sets how Green Demons spawns and despawns. Can be any of:
 Restricts the type of caught effects that can be chosen with the `RANDOM` caught effect. Can be any of:
   - `CASUAL` : Removes every hardcore effects from the effects pool, like `KILL` or `POOR_BOY`
   - `STANDARD` _(default)_: Keeps every caught effects.
-  - `VERY_HARD` : Removes every casual effects from the effects pool, like `SLIP` or `BEES`
+  - `HARDCORE` : Removes every casual effects from the effects pool, like `SLIP` or `BEES`
 
 ##### Green Demon Speed #####
 How fast the demon goes. There's 3 speed:

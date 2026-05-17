@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.1] - 2026-05-17
+
+### Changed ###
+
+- Fixed a bug with the volume slider not getting set properly with new green demons
+
 ## [1.3.0] - 2026-05-06
 
 ### Àdded ###

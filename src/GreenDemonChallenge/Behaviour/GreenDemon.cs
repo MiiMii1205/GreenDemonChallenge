@@ -91,6 +91,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
         GreenDemonChallenge.Log.LogInfo("SPAWN A GREEN DEMON!");
         GreenDemonGUIManager.Instance.TheDemonIsHere();
 
+        source.volume = GreenDemonChallenge.GreenDemonVolume.Value;
+        
         m_inActiveChase = true;
         AllDemons.Add(this);
         GreenDemonGUIManager.Instance.AddDemonTracker(this);
@@ -109,6 +111,8 @@ public class GreenDemon : MonoBehaviourPunCallbacks
             GreenDemonSpeeds.FAST => 2f,
             _ => throw new ArgumentOutOfRangeException()
         };
+
+
 
         StartCoroutine(WaitForSpawnAnimationToFinish());
     }
